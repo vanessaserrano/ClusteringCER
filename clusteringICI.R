@@ -43,5 +43,12 @@ dfMeansL <- pivot_longer(dfMeans,1:20,names_to="question", values_to = "mean")
 ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
   geom_tile()
 
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + scale_fill_gradient(low ="lightblue",high ="red") + theme_bw()
+
 ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
-  geom_line()
+  geom_line(size=1) + theme_bw() + theme(axis.text.x = element_text(angle = 90, size=7))
+
+ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
+  facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, size=7))
