@@ -28,7 +28,7 @@ dfDataR <- dfData[,2:21]
 #### CLUSTERING STUDENTS BY GRADINGS ####
 dfDataG <- dfData[,22:41]
 
-### kmeans ####
+### kmeans, euclidean distance ####
 ## .Example (with 4 clusters) ####
 # stats::kmeans uses euclidean distance
 clusterG <- kmeans(dfDataG, centers=4)
@@ -93,3 +93,22 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
 ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, size=7))
+
+### kmeans, Manhattan distance ####
+
+## .Visualizing distance matrices ####
+distance1 <- get_dist(dfDataG[1:50,1:20], method = "euclidean")
+fviz_dist(distance1, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance1))
+median(c(distance1))
+
+distance2 <- get_dist(dfDataG[1:50,1:20], method = "manhattan")
+fviz_dist(distance2, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance2))
+median(c(distance2))
+
+
+## .Example (with 4 clusters) ####
+
