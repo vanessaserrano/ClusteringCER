@@ -23,10 +23,39 @@ dim(dfData)
 summary(dfData)
 
 #### CLUSTERING STUDENTS BY RESPONSES ####
+### Discussion ####
+# Similarity for nominal.
+# https://www.researchgate.net/publication/286927854_Similarity_Measures_for_Nominal_Variable_Clustering
+
 dfDataR <- dfData[,2:21]
 
+
 #### CLUSTERING STUDENTS BY GRADINGS ####
+### Discussion ####
+# Data is dichotomous (0;1)
+# Euclidean distance
+# Manhattan distance: Is it different to euclidean in this case? 
+#
+
 dfDataG <- dfData[,22:41]
+
+### Comparing distances ####
+## .Visualizing distance matrices ####
+distance1 <- get_dist(dfDataG[1:50,1:20], method = "euclidean")
+fviz_dist(distance1, gradient = list(low = "yellow", high = "darkblue"))
+fviz_dist(distance1^2, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance1))
+median(c(distance1))
+
+distance2 <- get_dist(dfDataG[1:50,1:20], method = "manhattan")
+fviz_dist(distance2, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance2))
+median(c(distance2))
+
+# Manhattan distance is equal squared Euclidean distance 
+# Only euclidean will be used
 
 ### kmeans, euclidean distance ####
 ## .Example (with 4 clusters) ####
@@ -57,7 +86,6 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   theme(axis.text.x = element_text(angle = 90, size=7))
 
 ## .Optimal number of clusters ####
-
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "wss", 
                          k.max = 20, nstart = 10) 
 # optimal ~ 5
@@ -67,6 +95,10 @@ factoextra::fviz_nbclust(dfDataG, kmeans, method = "silhouette",
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
                          k.max = 20, nstart = 10)
 # optimal ~ 4-6
+
+# TO DO: Look for additional criteria to select the optimal
+#        number of clusters
+# TO DO: Add repetitions
 
 # stats::kmeans uses euclidean distance
 clusterG <- kmeans(dfDataG, centers=5, nstart = 10)
@@ -94,21 +126,7 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, size=7))
 
-### kmeans, Manhattan distance ####
 
-## .Visualizing distance matrices ####
-distance1 <- get_dist(dfDataG[1:50,1:20], method = "euclidean")
-fviz_dist(distance1, gradient = list(low = "yellow", high = "darkblue"))
-
-max(c(distance1))
-median(c(distance1))
-
-distance2 <- get_dist(dfDataG[1:50,1:20], method = "manhattan")
-fviz_dist(distance2, gradient = list(low = "yellow", high = "darkblue"))
-
-max(c(distance2))
-median(c(distance2))
-
-
-## .Example (with 4 clusters) ####
+# TO DO: Validation of the clustering
+# TO DO: Error estimation for individual classifications
 
