@@ -88,17 +88,58 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
 ## .Optimal number of clusters ####
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "wss", 
                          k.max = 20, nstart = 10) 
-# optimal ~ 5
+# >>> optimal ~ 5
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "silhouette", 
                          k.max = 20, nstart = 10) 
-# optimal ~ 5-6
+# >>> optimal ~ 5-6
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
                          k.max = 20, nstart = 10)
-# optimal ~ 4-6
+# >>> optimal ~ 4-6
+# >>> Range of k for further inspection k = 2:10
+
+# Adding repetitions
+clusterings <- data.frame(k=sort(rep(2:10,10)),
+                          i=rep(1:10,9),
+                          kmeans=NA)
+lstKmeans<-as.list(rep(NA,90))
+for(cl in 1:nrow(clusterings)) {
+  lstKmeans[[cl]] <- 
+    kmeans(dfDataG, centers= clusterings$k[cl], nstart=1)
+  print(cl)
+}
+
+clusterings$kmeans <- lstKmeans
+str(clusterings$kmeans[1])
+
+
+
+clusterings$totwss <- sapply(clusterings$kmeans,
+                             function(x) x$tot.withinss)
+
+ggplot(clusterings, aes(x=k, y=totwss)) +
+  geom_point(size=3, shape=21) + theme_classic() +
+  scale_x_continuous(breaks=2:10)
+# >>> results seem to converge for k=5-6
+# tot.withinss should be between point and centers of their cluster  
+# betweenss should be ss between centers and grand average
+
+clusterings$bss <- sapply(clusterings$kmeans,
+                             function(x) x$betweenss)
+
+ggplot(clusterings, aes(x=k, y=bss)) +
+  geom_point(size=3, shape=21) + theme_classic() +
+  scale_x_continuous(breaks=2:10)
+
+summary(clusterings$totwss+clusterings$bss)
+
 
 # TO DO: Look for additional criteria to select the optimal
 #        number of clusters
-# TO DO: Add repetitions
+
+# L-method
+# silhouette with repetitions
+
+
 
 # stats::kmeans uses euclidean distance
 clusterG <- kmeans(dfDataG, centers=5, nstart = 10)
@@ -128,5 +169,8 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
 
 
 # TO DO: Validation of the clustering
+# A low dispersion of tot.withinss among repetitions could be a
+# validation criterium for the clustering
+
 # TO DO: Error estimation for individual classifications
 
