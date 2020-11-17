@@ -1,5 +1,7 @@
-#### CLUSTERING IN CER
+#### ** CLUSTERING IN CER ** ####
 
+#### 00 DATA PREPARATION ####
+### 00.1 Package management ####
 options(install.packages.check.source = "no")
 
 pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "factoextra")
@@ -9,6 +11,7 @@ for(pckg in pckgs2Install) {install.packages(pckg,repos="https://cloud.r-project
                                              quiet=TRUE, type="binary")}
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 
+### 00.2 Data import ####
 dfData <- read.table("data/ICI.tsv",sep="\t",header=T)
 
 # 1-tier concept inventory
@@ -22,22 +25,46 @@ dfData <- read.table("data/ICI.tsv",sep="\t",header=T)
 dim(dfData)
 summary(dfData)
 
-#### CLUSTERING STUDENTS BY RESPONSES ####
-### Discussion ####
+
+## 00.2.1 Clustering students by responses ####
 # Similarity for nominal.
 # https://www.researchgate.net/publication/286927854_Similarity_Measures_for_Nominal_Variable_Clustering
 
 dfDataR <- dfData[,2:21]
 
 
-#### CLUSTERING STUDENTS BY GRADINGS ####
-### Discussion ####
+## 00.2.2 Clustering students by gradings ####
 # Data is dichotomous (0;1)
 # Euclidean distance
 # Manhattan distance: Is it different to euclidean in this case? 
 #
 
 dfDataG <- dfData[,22:41]
+
+
+#### 01 PREVIOUS CONSIDERATIONS ####
+### 01.1 Distances ####
+### 01.2 Variables: selection and transformation ####
+### 01.3 Grouping criteria ####
+### 01.4 Outliers ####
+#### 02 INTERNAL VALIDATION ####
+### 02.1 Sense-making ####
+## 02.1.1 For the research team. Ability to explain ####
+## 02.1.2 Experts based ####
+### 02.2 Validation of groups ####
+## 02.2.1 Repeatability: Stochastic methods, Deterministic methods, Ensemble methods, Choosing an optimal solution ####
+## 02.2.2 Silhouette analysis ####
+### 02.3 Validation of an individual classification ####
+## 02.3.1 Silhouette index ####
+## 02.3.2 Probability of being in a group ####
+#### 03 EXTERNAL VALIDATION ####
+### 03.1 Classification coherence indices ####
+
+
+################################################
+####  TO ORGANIZE ####
+################################################
+
 
 ### Comparing distances ####
 ## .Visualizing distance matrices ####
