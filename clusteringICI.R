@@ -4,7 +4,14 @@
 ### 00.1 Package management ####
 options(install.packages.check.source = "no")
 
-pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "factoextra")
+pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "factoextra",
+         "NbClust", "mclust", "cluster")
+# factoextra: 
+# NbClust: determining the best number of clusters
+# mclust: Gaussian Mixture Modelling for Model-Based Clustering, 
+#       Classification, and Density Estimation 
+# cluster: "Finding Groups in Data": Cluster Analysis Extended, Rousseeuw et al. 
+
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
 for(pckg in pckgs2Install) {install.packages(pckg,repos="https://cloud.r-project.org/",
@@ -26,25 +33,56 @@ dim(dfData)
 summary(dfData)
 
 
-## 00.2.1 Clustering students by responses ####
+
+#### 01 PREVIOUS CONSIDERATIONS ####
+### 01.1 Variables: selection and transformation ####
+
+## 01.1.1 Students by responses ####
 # Similarity for nominal.
 # https://www.researchgate.net/publication/286927854_Similarity_Measures_for_Nominal_Variable_Clustering
 
 dfDataR <- dfData[,2:21]
 
-
-## 00.2.2 Clustering students by gradings ####
+## 01.1.2 Students by gradings ####
 # Data is dichotomous (0;1)
 # Euclidean distance
 # Manhattan distance: Is it different to euclidean in this case? 
-#
 
 dfDataG <- dfData[,22:41]
 
 
-#### 01 PREVIOUS CONSIDERATIONS ####
-### 01.1 Distances ####
-### 01.2 Variables: selection and transformation ####
+## 01.1.3 Factor analysis ####
+
+
+### 01.2 Distances ####
+## 01.2.1 Distance calculation ####
+diss <- factoextra::get_dist(dfDataG, method="euclidean")
+
+# stats::dist includes euclidean", "maximum", "manhattan",
+#     "canberra", "binary" or "minkowski"
+# factoextra::get_dist includes "euclidean", "maximum",
+#     "manhattan", "canberra", "binary", "minkowski", 
+#     "pearson", "spearman" or "kendall"
+
+## 01.2.2 Comparing distances ####
+# visualizing distance matrices 
+distance1 <- get_dist(dfDataG[1:50,1:20], method = "euclidean")
+fviz_dist(distance1, gradient = list(low = "yellow", high = "darkblue"))
+fviz_dist(distance1^2, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance1))
+median(c(distance1))
+
+distance2 <- get_dist(dfDataG[1:50,1:20], method = "manhattan")
+fviz_dist(distance2, gradient = list(low = "yellow", high = "darkblue"))
+
+max(c(distance2))
+median(c(distance2))
+
+# Manhattan distance is equal squared Euclidean distance 
+# Only euclidean will be used
+
+
 ### 01.3 Grouping criteria ####
 ### 01.4 Outliers ####
 #### 02 INTERNAL VALIDATION ####
@@ -66,27 +104,10 @@ dfDataG <- dfData[,22:41]
 ################################################
 
 
-### Comparing distances ####
-## .Visualizing distance matrices ####
-distance1 <- get_dist(dfDataG[1:50,1:20], method = "euclidean")
-fviz_dist(distance1, gradient = list(low = "yellow", high = "darkblue"))
-fviz_dist(distance1^2, gradient = list(low = "yellow", high = "darkblue"))
-
-max(c(distance1))
-median(c(distance1))
-
-distance2 <- get_dist(dfDataG[1:50,1:20], method = "manhattan")
-fviz_dist(distance2, gradient = list(low = "yellow", high = "darkblue"))
-
-max(c(distance2))
-median(c(distance2))
-
-# Manhattan distance is equal squared Euclidean distance 
-# Only euclidean will be used
 
 ### kmeans, euclidean distance ####
 ## .Example (with 4 clusters) ####
-# stats::kmeans uses euclidean distance
+# stats::kmeans uses euclidean distance by default
 clusterG <- kmeans(dfDataG, centers=4)
 dfDataG$cluster <- clusterG$cluster
 table(dfDataG$cluster)
@@ -113,14 +134,28 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   theme(axis.text.x = element_text(angle = 90, size=7))
 
 ## .Optimal number of clusters ####
+NbClust(dfDataG, distance="euclidean", min.nc = 2, max.nc = 20,
+        method = "kmeans", index="all")
+
+# * Among all indices:                                                
+# * 8 proposed 2 as the best number of clusters 
+# * 8 proposed 3 as the best number of clusters 
+# * 1 proposed 6 as the best number of clusters 
+# * 2 proposed 11 as the best number of clusters 
+# * 1 proposed 12 as the best number of clusters 
+# * 1 proposed 14 as the best number of clusters 
+# * 1 proposed 17 as the best number of clusters 
+# * 1 proposed 18 as the best number of clusters 
+
+# fviz_nbclust uses euclidean distance by default
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "wss", 
                          k.max = 20, nstart = 10) 
 # >>> optimal ~ 5
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "silhouette", 
                          k.max = 20, nstart = 10) 
 # >>> optimal ~ 5-6
-factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
-                         k.max = 20, nstart = 10)
+# factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
+#                          k.max = 20, nstart = 10)
 # >>> optimal ~ 4-6
 # >>> Range of k for further inspection k = 2:10
 
@@ -194,10 +229,14 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, size=7))
 
-
+#### TO DOs ####
 # TO DO: Validation of the clustering
 # A low dispersion of tot.withinss among repetitions could be a
 # validation criterium for the clustering
 
 # TO DO: Error estimation for individual classifications
 
+# TO DO: Run EFA and choose subscores from that
+#        Recover from mail to Vicente
+
+# TO DO: Add hierarchical
