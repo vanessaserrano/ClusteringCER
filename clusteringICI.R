@@ -5,12 +5,13 @@
 options(install.packages.check.source = "no")
 
 pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "factoextra",
-         "NbClust", "mclust", "cluster")
-# factoextra: 
+         "NbClust", "mclust", "cluster", "flexclust")
+# factoextra: Extract and Visualize the Results of Multivariate Data Analyses
 # NbClust: determining the best number of clusters
 # mclust: Gaussian Mixture Modelling for Model-Based Clustering, 
 #       Classification, and Density Estimation 
 # cluster: "Finding Groups in Data": Cluster Analysis Extended, Rousseeuw et al. 
+# flexclust: Flexible Cluster Algorithms (includes kcca function)
 
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
@@ -195,8 +196,6 @@ ggplot(clusterings, aes(x=k, y=bss)) +
 summary(clusterings$totwss+clusterings$bss)
 
 
-# TO DO: Look for additional criteria to select the optimal
-#        number of clusters
 
 # L-method
 # silhouette with repetitions
@@ -229,6 +228,75 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, size=7))
 
+
+#### ANALYSIS OF CENTERS DISTRIBUTION (02.2.1?) ####
+### Kmeans, gradings ####
+clusterings <- data.frame(k=sort(rep(2:8,1000)),
+                          i=rep(1:1000,7),
+                          kmeans=NA)
+lstKmeans<-as.list(rep(NA,7000))
+for(cl in 1:nrow(clusterings)) {
+  lstKmeans[[cl]] <- 
+    kmeans(dfDataG, centers= clusterings$k[cl], nstart=1,
+           iter.max=50)
+  # print(cl)
+}
+
+clusterings$kmeans <- lstKmeans
+str(clusterings$kmeans[1])
+
+# selk <- 3
+for(selk in 2:8) {
+  sel <- clusterings$kmeans[clusterings$k==selk]
+  
+  for(i in seq(length(sel))) {
+    if(i == 1) {
+      dfCenters <- as.data.frame(sel[[i]]$centers)
+    } else {
+      dfCenters <- rbind(dfCenters,
+                         as.data.frame(sel[[i]]$centers))
+    }
+  }
+  
+  dfCentersL <- dfCenters %>% 
+    pivot_longer(.,1:ncol(.), names_to = "question", values_to = "mean")
+  
+  dfBest <- as.data.frame(sel[[which.min(sapply(sel,
+                                                function(x) x$tot.withinss))]]$centers)
+  
+  dfBest$cluster <- row.names(dfBest) 
+  
+  dfBestL <- dfBest %>% 
+    pivot_longer(.,1:(ncol(.)-1), names_to = "question", values_to = "mean")
+  
+  dfBestL$cluster <- as.factor(dfBestL$cluster)
+  
+  print(paste("===",selk,"==="))
+  print(ggplot(dfCentersL, aes(x=mean, y=1)) + 
+          geom_vline(aes(color=cluster,xintercept=mean),
+                     data=dfBestL, size=1.5) +
+          geom_jitter(width=0, height=0.4, shape=21,
+                      alpha=0.1, size=1) +
+          scale_y_continuous(limits=c(.5,1.5))+
+          facet_wrap(~question) +
+          theme_classic() +
+          theme(axis.text.y = element_blank(),
+                axis.ticks.y = element_blank(),
+                axis.line.y = element_blank()))
+  
+  print(ggplot(dfCentersL, aes(x=mean)) + 
+          geom_vline(aes(color=cluster,xintercept=mean),
+                     data=dfBestL, size=1.5) +
+          geom_density() +
+          facet_wrap(~question, scales="free_y") +
+          theme_classic() +
+          theme(axis.text.y = element_blank(),
+                axis.ticks.y = element_blank(),
+                axis.line.y = element_blank()))
+  
+}
+
+
 #### TO DOs ####
 # TO DO: Validation of the clustering
 # A low dispersion of tot.withinss among repetitions could be a
@@ -240,3 +308,12 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
 #        Recover from mail to Vicente
 
 # TO DO: Add hierarchical
+
+# TO DO: Look for additional criteria to select the optimal
+#        number of clusters
+
+# TO DO: Analyze kcca with different distances (dist matrix
+# is not valid for kmeans, distance to centroid can not be
+# calculated)
+#  - https://stackoverflow.com/questions/7524042/how-to-specify-distance-metric-while-for-kmeans-in-r
+#  - https://www.rdocumentation.org/packages/flexclust/versions/1.4-0/topics/kcca
