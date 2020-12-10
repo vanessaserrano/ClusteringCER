@@ -56,6 +56,8 @@ dfDataG <- dfData[,22:41]
 
 
 ### 01.2 Distances ####
+# stats::kmeans uses euclidean distance by default
+
 ## 01.2.1 Distance calculation ####
 diss <- factoextra::get_dist(dfDataG, method="euclidean")
 
@@ -86,118 +88,90 @@ median(c(distance2))
 
 ### 01.3 Grouping criteria ####
 ### 01.4 Outliers ####
-#### 02 INTERNAL VALIDATION ####
-### 02.1 Sense-making ####
-## 02.1.1 For the research team. Ability to explain ####
-## 02.1.2 Experts based ####
-### 02.2 Validation of groups ####
-## 02.2.1 Repeatability: Stochastic methods, Deterministic methods, Ensemble methods, Choosing an optimal solution ####
-## 02.2.2 Silhouette analysis ####
-### 02.3 Validation of an individual classification ####
-## 02.3.1 Silhouette index ####
-## 02.3.2 Probability of being in a group ####
-#### 03 EXTERNAL VALIDATION ####
-### 03.1 Classification coherence indices ####
 
+### 01.5 Optimal number of clusters ####
+k_range <- c(2,8)
 
-################################################
-####  TO ORGANIZE ####
-################################################
-
-
-
-### kmeans, euclidean distance ####
-## .Example (with 4 clusters) ####
-# stats::kmeans uses euclidean distance by default
-clusterG <- kmeans(dfDataG, centers=4)
-dfDataG$cluster <- clusterG$cluster
-table(dfDataG$cluster)
-clusterG$centers
-
-dfMeans <- as.data.frame(clusterG$centers)
-dfMeans$cluster <- rownames(dfMeans)
-dfMeansL <- pivot_longer(dfMeans,1:20,names_to="question", values_to = "mean")
-
-ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
-  geom_tile()
-
-ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
-  geom_tile() + scale_fill_gradient(low ="lightblue",high ="red") + theme_bw()
-
-ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
-  geom_tile() + scale_fill_viridis_b(option="magma") + theme_bw()
-
-ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
-  geom_line(size=1) + theme_bw() + theme(axis.text.x = element_text(angle = 90, size=7))
-
-ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
-  facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
-  theme(axis.text.x = element_text(angle = 90, size=7))
-
-## .Optimal number of clusters ####
-NbClust(dfDataG, distance="euclidean", min.nc = 2, max.nc = 20,
+# Externally decided to be between 2 and 8
+NbClust(dfDataG, distance="euclidean", min.nc = min(k_range),
+        max.nc = max(k_range),
         method = "kmeans", index="all")
 
 # * Among all indices:                                                
-# * 8 proposed 2 as the best number of clusters 
-# * 8 proposed 3 as the best number of clusters 
+# * 9 proposed 2 as the best number of clusters 
+# * 9 proposed 3 as the best number of clusters 
+# * 1 proposed 4 as the best number of clusters 
 # * 1 proposed 6 as the best number of clusters 
-# * 2 proposed 11 as the best number of clusters 
-# * 1 proposed 12 as the best number of clusters 
-# * 1 proposed 14 as the best number of clusters 
-# * 1 proposed 17 as the best number of clusters 
-# * 1 proposed 18 as the best number of clusters 
+# * 1 proposed 7 as the best number of clusters 
+# * 2 proposed 8 as the best number of clusters 
+
 
 # fviz_nbclust uses euclidean distance by default
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "wss", 
-                         k.max = 20, nstart = 10) 
-# >>> optimal ~ 5
+                         k.max = max(k_range), nstart = 10) 
+# >>> optimal ~ 4-5
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "silhouette", 
-                         k.max = 20, nstart = 10) 
+                         k.max = max(k_range), nstart = 10) 
+# >>> optimal ~ 2-4
+factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
+                          k.max = max(k_range), nstart = 10, iter.max = 20,
+                          nboot = 50)
+# gap statistic method uses bootstrap, iter.max is increased
+# to avoid no-convergence warnings
 # >>> optimal ~ 5-6
-# factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
-#                          k.max = 20, nstart = 10)
-# >>> optimal ~ 4-6
-# >>> Range of k for further inspection k = 2:10
+
 
 # Adding repetitions
-clusterings <- data.frame(k=sort(rep(2:10,10)),
-                          i=rep(1:10,9),
+clusterings <- data.frame(k=sort(rep(k_range,1000)),
+                          i=rep(1:1000,length(k_range)),
                           kmeans=NA)
-lstKmeans<-as.list(rep(NA,90))
+lstKmeans<-as.list(rep(NA,1000 * length(k_range)))
 for(cl in 1:nrow(clusterings)) {
   lstKmeans[[cl]] <- 
-    kmeans(dfDataG, centers= clusterings$k[cl], nstart=1)
-  print(cl)
+    kmeans(dfDataG, centers= clusterings$k[cl], nstart=1,
+           iter.max=20)
+  # print(cl)
 }
 
 clusterings$kmeans <- lstKmeans
 str(clusterings$kmeans[1])
 
-
-
 clusterings$totwss <- sapply(clusterings$kmeans,
                              function(x) x$tot.withinss)
+clusterings$bss <- sapply(clusterings$kmeans,
+                          function(x) x$betweenss)
+
+clust_summ <- clusterings %>% group_by(k) %>% 
+  summarise(mintotwss=min(totwss),mediantotwss=median(totwss),
+            maxbss=max(bss), medianbss=median(bss)) 
 
 ggplot(clusterings, aes(x=k, y=totwss)) +
-  geom_point(size=3, shape=21) + theme_classic() +
-  scale_x_continuous(breaks=2:10)
+  geom_jitter(size=1, shape=21, width=.2, alpha=0.2) +
+  geom_line(aes(y=mintotwss), data=clust_summ, color="blue") +
+  geom_point(aes(y=mintotwss), data=clust_summ, color="blue") +
+  geom_line(aes(y=mediantotwss), data=clust_summ, color="red") +
+  geom_point(aes(y=mediantotwss), data=clust_summ, color="red") +
+  theme_classic() +
+  scale_x_continuous(breaks=min(k_range):max(k_range))
 # >>> results seem to converge for k=5-6
 # tot.withinss should be between point and centers of their cluster  
 # betweenss should be ss between centers and grand average
 
-clusterings$bss <- sapply(clusterings$kmeans,
-                             function(x) x$betweenss)
 
 ggplot(clusterings, aes(x=k, y=bss)) +
-  geom_point(size=3, shape=21) + theme_classic() +
-  scale_x_continuous(breaks=2:10)
+  geom_jitter(size=1, shape=21, width=.2, alpha=0.2) +
+  geom_line(aes(y=maxbss), data=clust_summ, color="blue") +
+  geom_point(aes(y=maxbss), data=clust_summ, color="blue") +
+  geom_line(aes(y=medianbss), data=clust_summ, color="red") +
+  geom_point(aes(y=medianbss), data=clust_summ, color="red") +
+  theme_classic() +
+  scale_x_continuous(breaks=min(k_range):max(k_range))
 
 summary(clusterings$totwss+clusterings$bss)
 
-
-
 # L-method
+
+
 # silhouette with repetitions
 
 
@@ -229,23 +203,48 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
   theme(axis.text.x = element_text(angle = 90, size=7))
 
 
-#### ANALYSIS OF CENTERS DISTRIBUTION (02.2.1?) ####
-### Kmeans, gradings ####
-clusterings <- data.frame(k=sort(rep(2:8,1000)),
-                          i=rep(1:1000,7),
-                          kmeans=NA)
-lstKmeans<-as.list(rep(NA,7000))
-for(cl in 1:nrow(clusterings)) {
-  lstKmeans[[cl]] <- 
-    kmeans(dfDataG, centers= clusterings$k[cl], nstart=1,
-           iter.max=50)
-  # print(cl)
-}
 
-clusterings$kmeans <- lstKmeans
-str(clusterings$kmeans[1])
 
-# selk <- 3
+
+
+
+#### 02 INTERNAL VALIDATION ####
+### 02.1 Sense-making ####
+## 02.1.1 For the research team. Ability to explain ####
+
+# ... kmeans (4 clusters), euclidean distance ####
+# Used an arbitrary number of clusters
+clusterG <- kmeans(dfDataG, centers=4)
+dfDataG$cluster <- clusterG$cluster
+table(dfDataG$cluster)
+clusterG$centers
+
+dfMeans <- as.data.frame(clusterG$centers)
+dfMeans$cluster <- rownames(dfMeans)
+dfMeansL <- pivot_longer(dfMeans,1:20,names_to="question", values_to = "mean")
+
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile()
+
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + scale_fill_gradient(low ="lightblue",high ="red") + theme_bw()
+
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + scale_fill_viridis_b(option="magma") + theme_bw()
+
+ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
+  geom_line(size=1) + theme_bw() + theme(axis.text.x = element_text(angle = 90, size=7))
+
+ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
+  facet_grid(cluster ~ .) + geom_line(size=1) + theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, size=7))
+
+
+## 02.1.2 Experts based ####
+
+### 02.2 Validation of groups ####
+## 02.2.1 Repeatability: Stochastic methods, Deterministic methods, Ensemble methods, Choosing an optimal solution ####
+# ... Stochastic methods: kmeans, gradings ####
 for(selk in 2:8) {
   sel <- clusterings$kmeans[clusterings$k==selk]
   
@@ -295,6 +294,15 @@ for(selk in 2:8) {
                 axis.line.y = element_blank()))
   
 }
+
+
+
+## 02.2.2 Silhouette analysis ####
+### 02.3 Validation of an individual classification ####
+## 02.3.1 Silhouette index ####
+## 02.3.2 Probability of being in a group ####
+#### 03 EXTERNAL VALIDATION ####
+### 03.1 Classification coherence indices ####
 
 
 #### TO DOs ####
