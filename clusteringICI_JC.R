@@ -1,4 +1,7 @@
-#### ** CLUSTERING IN CER ** ####
+##=====================================================##
+##  CLUSTERING IN CER                                  ##
+##  @authors: Vanessa Serrano, Jordi Cuadros           ##
+##=====================================================##
 
 #### 00 DATA PREPARATION ####
 ### 00.1 Package management ####
@@ -6,13 +9,15 @@ options(install.packages.check.source = "no")
 
 pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "factoextra",
          "NbClust", "mclust", "cluster", "flexclust", "psych",
-         "corrplot", "polycor")
+         "corrplot", "polycor", "philentropy", "arules",
+         "GGally", "ggExtra", "ggalt")
 # factoextra: Extract and Visualize the Results of Multivariate Data Analyses
 # NbClust: determining the best number of clusters
 # mclust: Gaussian Mixture Modelling for Model-Based Clustering, 
 #       Classification, and Density Estimation 
 # cluster: "Finding Groups in Data": Cluster Analysis Extended, Rousseeuw et al. 
 # flexclust: Flexible Cluster Algorithms (includes kcca function)
+# philentropy: Similarity and Distance Quantification Between Probability Functions
 
 pckgs2Install<-pckgs[!(pckgs %in% library()$results[,1])]
 pckgs2Load<-pckgs[!(pckgs %in% (.packages()))]
@@ -171,6 +176,19 @@ diss <- factoextra::get_dist(dfDataG, method="euclidean")
 # factoextra::get_dist includes "euclidean", "maximum",
 #     "manhattan", "canberra", "binary", "minkowski", 
 #     "pearson", "spearman" or "kendall"
+# cluster::daisy includes "euclidean", "manhattan", "gower"
+# philentropy::distance includes "additive_symm", "avg", 
+#     "bhattacharyya", "canberra", "chebyshev", "clark", 
+#     "cosine", "czekanowski", "dice", "divergence", "euclidean",
+#     "fidelity", "gower", "harmonic_mean", "hassebrook", 
+#     "hellinger", "inner_product", "intersection", "jaccard", 
+#     "jeffreys", "jensen_difference", "jensen-shannon", 
+#     "k_divergence", "kulczynski_d", "kulczynski_s", 
+#     "kullback-leibler", "kumar-johnson", "lorentzian", 
+#     "manhattan", "matusita", "minkowski", "motyka", "neyman", 
+#     "non-intersection", "pearson", "prob_symm", "ruzicka", 
+#     "soergel", "sorensen", "squared_chi", "squared_chord", 
+#     "squared_euclidean", "taneja", "tanimoto", "topsoe", "wavehedges"
 
 ## 01.2.2 Comparing distances ####
 # visualizing distance matrices 
@@ -249,7 +267,30 @@ if(!file.exists("km_clust/kmG_ns25.rda")) {
   save(clusterings, file="km_clust/kmG_ns25.rda")
 }
 
-## 02.1.3 Apriori factors, kmeans (nstart = 1) ####
+## 02.1.3 Gradings, hclust (Ward, dice) ####
+if(!file.exists("km_clust/hG_W_dice.rda")) {
+  clusterings <- data.frame(i=1:1000,
+                            ordering = NA,
+                            hc=NA)
+  lstOrder <- as.list(rep(NA,1000))
+  lstHC<-as.list(rep(NA,1000))
+  for(cl in 1:nrow(clusterings)) {
+    print(cl)
+    lstOrder[[cl]] <- sample(1:nrow(dfDataG),nrow(dfDataG)) 
+    df1 <- dfDataG[lstOrder[[cl]],]
+    distData <- dissimilarity(as.matrix(df1), method="dice")
+    lstHC[[cl]] <- 
+      agnes(distData, diss=T, method="ward")
+  }
+  
+  clusterings$ordering <- lstOrder
+  clusterings$hc <- lstHC
+  str(clusterings$hc[1])
+  
+  save(clusterings, file="km_clust/hG_W_dice.rda")
+}
+
+## 02.1.4 Apriori factors, kmeans (nstart = 1) ####
 if(!file.exists("km_clust/kmF1m_ns1.rda")) {
   clusterings <- data.frame(k=sort(rep(k_range,1000)),
                             i=rep(1:1000,length(k_range)),
@@ -272,7 +313,7 @@ if(!file.exists("km_clust/kmF1m_ns1.rda")) {
   save(clusterings, file="km_clust/kmF1m_ns1.rda")
 }
 
-## 02.1.4 Apriori factors, kmeans (nstart = 25) ####
+## 02.1.5 Apriori factors, kmeans (nstart = 25) ####
 if(!file.exists("km_clust/kmF1m_ns25.rda")) {
   clusterings <- data.frame(k=sort(rep(k_range,1000)),
                             i=rep(1:1000,length(k_range)),
@@ -294,6 +335,88 @@ if(!file.exists("km_clust/kmF1m_ns25.rda")) {
                             function(x) x$betweenss)
   save(clusterings, file="km_clust/kmF1m_ns25.rda")
 }
+
+## 02.1.6 Apriori factors, hclust (Ward, euclidean) ####
+if(!file.exists("km_clust/hF1m_W_euc.rda")) {
+  clusterings <- data.frame(i=1:1000,
+                            ordering = NA,
+                            hc=NA)
+  lstOrder <- as.list(rep(NA,1000))
+  lstHC<-as.list(rep(NA,1000))
+  for(cl in 1:nrow(clusterings)) {
+    lstOrder[[cl]] <- sample(1:nrow(dfDataF1m),nrow(dfDataF1m)) 
+    df1 <- dfDataF1m[lstOrder[[cl]],]
+    distData <- dist(df1, method="euclidean")
+    lstHC[[cl]] <- 
+      agnes(distData, diss=T, method="ward")
+  }
+  
+  clusterings$ordering <- lstOrder
+  clusterings$hc <- lstHC
+  str(clusterings$hc[1])
+  
+  save(clusterings, file="km_clust/hF1m_W_euc.rda")
+}
+
+## 02.1.7 Mona, gradings ####
+# Relevant for dichotomous data but uncommon
+
+dfMona <- dfDataG
+colnames(dfMona) <- substr(colnames(dfMona),2,4)
+monaClustering <- mona(dfMona)
+plot(monaClustering)
+
+# From https://www.reddit.com/r/rstats/comments/1rj7fr/clustering_using_mona_from_cluster_package/cdoiyym/
+divider <- function(test.sample, mona.obj, k){
+  ## Create an empty vector in which the results are added one by one
+  clusters = c()
+  
+  ## Divide the data row by row
+  for(j in 1:nrow(test.sample)){
+    
+    ## Pick up the necessary data from the mona object and put them 
+    ## in vectors we can later alter
+    steps = mona.obj$step
+    variable = mona.obj$variable
+    order.pat = mona.obj$order
+    cluster = 1
+    ## Performs a step by step division of the unclustered data
+    for(i in 1:k){ 
+      
+      indx = which(steps == i)
+      varia = variable[indx]
+      modulator = mona.obj$data[mona.obj$order[indx],varia]
+      
+      ## Security feature
+      if(!is.matrix(modulator)){
+        
+        ## Cuts the vectors in half, depending on the route the division takes.
+        ## This is for the left half
+        if(test.sample[j, varia] == modulator){
+          steps = steps[1:indx]
+          variable = variable[1:indx]
+          order.pat = order.pat[1:indx]}
+        
+        ## This is for the right half. Every time a right turn is made in the tree, a value is added to 
+        ## the cluster, depending on the step. 
+        if(test.sample[j, varia] != modulator){
+          steps = steps[indx:length(steps)]
+          variable = variable[indx:length(variable)]
+          order.pat = order.pat[indx:length(order.pat)]
+          ## Formula for the addition. Basically, the lower the right turn in the tree, the lower the added score
+          cluster = cluster + (2^k)*((1/2)^i)
+        }
+      }
+    }
+    clusters = append(clusters, cluster)
+  }
+  return(clusters)
+}
+
+clusters <- divider(dfMona,monaClustering,3) # 2: four clusters, 3: eight clusters
+(centers <- data.frame(dfMona,cluster=clusters) %>% group_by(cluster) %>% 
+    summarise(across(starts_with("Q"), mean)))
+
 
 ### 02.2 Optimal number of clusters ####
 ## 02.2.1 Students by gradings, kmeans ####
@@ -317,8 +440,8 @@ factoextra::fviz_nbclust(dfDataG, kmeans, method = "silhouette",
                          k.max = max(k_range), nstart = 10) 
 # >>> optimal ~ 2-4
 factoextra::fviz_nbclust(dfDataG, kmeans, method = "gap_stat", 
-                          k.max = max(k_range), nstart = 10, iter.max = 20,
-                          nboot = 50)
+                         k.max = max(k_range), nstart = 10, iter.max = 20,
+                         nboot = 50)
 # gap statistic method uses bootstrap, iter.max is increased
 # to avoid no-convergence warnings
 # >>> optimal ~ 5-6
@@ -451,7 +574,7 @@ for(clustFN in vecClustFilenames) {
     partBest <- sel[[which.min(sapply(sel,
                                       function(x) x$tot.withinss))]]$cluster
     cluOrder <- unique(partBest)
-  
+    
     # map partition by order
     partBest <- as.numeric(factor(partBest,
                                   levels=cluOrder))
@@ -461,7 +584,7 @@ for(clustFN in vecClustFilenames) {
       part1 <- sel[[i]]$cluster
       cluOrder <- unique(part1)
       part1 <- as.numeric(factor(part1,
-                                    levels=cluOrder))
+                                 levels=cluOrder))
       matches[i] <- all(part1==partBest)
       ari[i] <- adjustedRandIndex(part1,partBest)
     }
@@ -501,7 +624,7 @@ for(clustFN in vecClustFilenames) {
   }
 }
 
-# ... Stochastic methods: kmeans, apriori factors ####
+# ... Stochastic methods: kmeans, a priori factors ####
 vecClustFilenames <- c("km_clust/kmF1m_ns1.rda",
                        "km_clust/kmF1m_ns25.rda") 
 
@@ -601,8 +724,47 @@ for(clustFN in vecClustFilenames) {
 }
 
 ## 03.2.2 Silhouette analysis ####
+# A mean value above 0.5 should be expected according to
+# Leonard Kaufman; Peter J. Rousseeuw (1990). Finding groups in data : An introduction to cluster analysis
+
+# Attention to http://www.amse-conference.eu/old/2018/wp-content/uploads/2018/10/%C5%98ezankov%C3%A1.pdf
+
+# ... Gradings, kmeans, euclidean ####
+load("km_clust/kmG_ns25.rda")
+
+for(selk in k_range) {
+  print(paste("===",selk,"==="))
+  sel <- clusterings$kmeans[clusterings$k==selk]
+  selClustering <- sel[[which.min(sapply(sel,
+                                         function(x) x$tot.withinss))]]
+  sil <- silhouette(selClustering$cluster,
+                    dist=dist(dfDataG),method="complete")
+  print(fviz_silhouette(sil) + theme(legend.position = "none"))
+  
+  print(table(sil[,3]>0, useNA = "always"))
+  print(table(sil[,3]>0, useNA = "always") * 100 / length(sil[,3]))
+}
+
+# ... A priori factors, kmeans ####
+load("km_clust/kmF1m_ns25.rda")
+
+for(selk in k_range) {
+  print(paste("===",selk,"==="))
+  sel <- clusterings$kmeans[clusterings$k==selk]
+  selClustering <- sel[[which.min(sapply(sel,
+                                         function(x) x$tot.withinss))]]
+  sil <- silhouette(selClustering$cluster,
+                    dist=dist(dfDataF1m),method="complete")
+  print(fviz_silhouette(sil) + theme(legend.position = "none"))
+  
+  print(table(sil[,3]>0, useNA = "always"))
+  print(table(sil[,3]>0, useNA = "always") * 100 / length(sil[,3]))
+}
 
 ## 03.2.3 Bootstrap ####
+# https://sele.inf.um.es/evaluome/help.html
+# A Jaccard-index mean above 0.75 should be expected
+
 
 ### 03.3 Validation of an individual classification ####
 ## 03.3.1 Silhouette index ####
@@ -614,11 +776,48 @@ for(clustFN in vecClustFilenames) {
 
 #### 05 VISUALIZATION ####
 ### 05.1 Centers (To distinguish the clusters) ####
-load("km_clust/kmG_ns25.rda")
-
 ## 05.1.1 Heatmap ####
+
 # ... kmeans (4 clusters), euclidean distance ####
 # Used an arbitrary number of clusters
+load("km_clust/kmF1m_ns25.rda")
+
+sel <- clusterings$kmeans[clusterings$k==4]
+clusterG <- sel[[which.min(sapply(sel,
+                                  function(x) x$tot.withinss))]]
+
+dfMeans <- as.data.frame(clusterG$centers)
+centersAve <- apply(dfMeans,1,mean)
+
+dfMeans$cluster <- as.numeric(factor(1:4,levels=order(centersAve))) #rownames(dfMeans)
+
+dfMeansL <- pivot_longer(dfMeans,1:4,names_to="question", values_to = "mean")
+
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + scale_fill_viridis_b(option="magma") + theme_bw()
+
+
+# ... kmeans (8 clusters), euclidean distance ####
+# Used an arbitrary number of clusters
+sel <- clusterings$kmeans[clusterings$k==8]
+clusterG <- sel[[which.min(sapply(sel,
+                                  function(x) x$tot.withinss))]]
+
+dfMeans <- as.data.frame(clusterG$centers)
+centersAve <- apply(dfMeans,1,mean)
+
+dfMeans$cluster <- as.numeric(factor(1:8,levels=order(centersAve))) 
+
+dfMeansL <- pivot_longer(dfMeans,1:4,names_to="question", values_to = "mean")
+
+ggplot(dfMeansL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + scale_fill_viridis_b(option="magma") + theme_bw()
+
+
+# ... kmeans (4 clusters), euclidean distance ####
+# Used an arbitrary number of clusters
+load("km_clust/kmG_ns25.rda")
+
 sel <- clusterings$kmeans[clusterings$k==4]
 clusterG <- sel[[which.min(sapply(sel,
                                   function(x) x$tot.withinss))]]
@@ -675,7 +874,7 @@ ggplot(dfMeansL,aes(x=question,y=mean, color=cluster, group=cluster)) +
 ## 05.2.1 Nominal data (gradings) ####
 sel <- clusterings$kmeans[clusterings$k==4]
 clusterBest <- sel[[which.min(sapply(sel,
-                                  function(x) x$tot.withinss))]]
+                                     function(x) x$tot.withinss))]]
 
 dfClusterBest <- data.frame(
   dfDataG, cluster=clusterBest$cluster
@@ -708,7 +907,46 @@ ggplot(dfCQA, aes(x=answer, y=frequency, fill=cluster)) +
   scale_fill_brewer(type="qual")+
   scale_y_continuous(breaks=seq(0,1,.5))
 
+## 05.2.2 Continuous data (factors) ####
+load("km_clust/kmF1m_ns25.rda")
 
+sel <- clusterings$kmeans[clusterings$k==4]
+clusterBest <- sel[[which.min(sapply(sel,
+                                     function(x) x$tot.withinss))]]
+
+dfMeans <- as.data.frame(clusterBest$centers)
+centersAve <- apply(dfMeans,1,mean)
+
+dfMeans$cluster <- factor(as.numeric(factor(1:4,levels=order(centersAve)))) #rownames(dfMeans)
+
+dfMeansL <- pivot_longer(dfMeans,1:4,names_to="question", values_to = "mean")
+
+
+dfClusterBest <- data.frame(
+  dfDataF1m, cluster=factor(as.numeric(factor(clusterBest$cluster,
+                                              levels=order(centersAve))))
+)
+
+ggpairs(dfClusterBest[,1:4], 
+        diag="blankDiag",
+        mapping=ggplot2::aes(color=dfClusterBest$cluster),
+        lower=list(continuous=
+                     wrap("points",alpha=.2, position=position_jitter())))+
+  scale_fill_brewer(type="qual")+
+  theme_classic()
+
+for(i in seq(1,ncol(dfClusterBest)-2)) {
+  for(j in seq(i+1,ncol(dfClusterBest)-1)) {
+    print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+                                          y=colnames(dfClusterBest)[j],
+                                          color="cluster"))+
+            geom_encircle() +
+            geom_jitter(shape=21, alpha=.8)+
+            geom_point(data=dfMeans, size=20, shape="+")+
+            scale_color_brewer(type="qual", palette="Dark2")+
+            theme_classic())
+  }
+}
 
 
 #### TO DOs ####
