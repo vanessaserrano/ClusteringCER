@@ -515,6 +515,60 @@ NbClust(dfDataF1m, distance="euclidean", min.nc = min(k_range),
 # * 2 proposed 8 as the best number of clusters 
 
 
+load("km_clust/hF1m_W_euc.rda")
+
+ksel <- 4
+acs <- numeric(1000)
+lstCenters <- as.list(rep(NA,1000))
+for(i in clusterings$i) {
+  if(i == 1) {
+    cl1 <- cutree(clusterings$hc[[i]],ksel)
+    cl1 <- cl1[order(clusterings$ordering[[i]])]
+    dfClusters <- data.frame(
+      cl = as.numeric(factor(cl1,levels=unique(cl1))))
+    colnames(dfClusters)[ncol(dfClusters)] <- 
+      paste0("cl",substr("0000",1,5-nchar(i)),i)
+  } else {
+    cl1 <- cutree(clusterings$hc[[i]],4)
+    cl1 <- cl1[order(clusterings$ordering[[i]])]
+    dfClusters <- cbind(dfClusters, 
+      cl = as.numeric(factor(cl1,levels=unique(cl1))))
+    colnames(dfClusters)[ncol(dfClusters)] <- 
+      paste0("cl",substr("0000",1,5-nchar(i)),i)
+  }
+  acs[i] <- clusterings$hc[[i]]$ac
+  lstCenters[[i]] <- data.frame(dfDataF1m,cluster=cl1) %>% 
+    group_by(cluster) %>% 
+    summarise(across(1:4,mean))
+}
+
+ggplot(NULL, aes(x=acs, y=..density..)) +
+  geom_histogram(color="black", fill="lightgrey") +
+  geom_density() + theme_classic()
+
+# Best as maximum ac?
+bestHC <- which.max(acs) 
+
+sil <- silhouette(as.integer(dfClusters[,bestHC]),
+                  dist(dfDataF1m),method="complete")
+print(fviz_silhouette(sil) + theme(legend.position = "none"))
+
+ari <- numeric(1000)
+for(i in 1:1000) {
+  ari[i] <- adjustedRandIndex(dfClusters[,bestHC],dfClusters[,i])
+}
+
+# visualize ARI distribution
+ggplot(NULL, aes(x=ari, y=..density..)) +
+  geom_histogram(color="black", fill="lightgrey") +
+  geom_density() +
+  scale_x_continuous(limits=c(0,1))+
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank())
+
+
 #### 03 INTERNAL VALIDATION ####
 ### 03.1 Sense-making ####
 ## 03.1.1 For the research team. Ability to explain ####
@@ -690,13 +744,14 @@ for(clustFN in vecClustFilenames) {
     print(table(matches))
     
     # visualize ARI distribution
-    print(ggplot(NULL) +
-            geom_density(aes(x=ari)) +
-            scale_x_continuous(limits=c(0,1))+
-            theme_classic() +
-            theme(axis.text.y = element_blank(),
-                  axis.ticks.y = element_blank(),
-                  axis.line.y = element_blank()))
+    ggplot(NULL, aes(x=ari, y=..density..)) +
+      geom_histogram(color="black", fill="lightgrey") +
+      geom_density() +
+      scale_x_continuous(limits=c(0,1))+
+      theme_classic() +
+      theme(axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+            axis.line.y = element_blank())
     
     # visualize center distribution
     print(ggplot(dfCentersL, aes(x=mean, y=1)) + 
