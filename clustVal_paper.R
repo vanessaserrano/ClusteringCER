@@ -63,18 +63,20 @@ clusteringsHc <- clusterings
 
 lstPartitions <- as.list(rep(NA,1000))
 lstCenters <- as.list(rep(NA,1000))
-for(i in clusterings$i) {
-    cl1 <- cutree(clusterings$hc[[i]],ksel)
-    cl1 <- cl1[order(clusterings$ordering[[i]])]
+
+for(i in clusteringsHc$i) {
+    cl1 <- cutree(clusteringsHc$hc[[i]],ksel)
+    cl1 <- cl1[order(clusteringsHc$ordering[[i]])]
     lstPartitions[[i]] <- as.numeric(factor(cl1,levels=unique(cl1)))
-    lstCenters[[i]] <- data.frame(dfDataF1m,cluster=cl1) %>% 
+    lstCenters[[i]] <- data.frame(dfDataF1m,cluster=lstPartitions[[i]]) %>% 
       group_by(cluster) %>% 
-      summarise(across(1:4,mean))
+      summarise(across(1:4,mean),.groups="drop_last")
 }
 clusteringsHc$cluster <- lstPartitions
 clusteringsHc$centers <- lstCenters
 
 str(clusteringsHc)
+
 
 #### 03 REFERENCE ATTEMPT FOR EACH METHOD ####
 # Select 1 from the set of repetitions (1000)
@@ -117,7 +119,6 @@ ggplot(dfCentersL,aes(x=cluster,y=question,fill=mean)) +
   theme_bw()
 
 # ... ... observations ####
-
 dfClusterBest <- data.frame(
   dfDataF1m, cluster=factor(as.numeric(factor(refKm_sil$kmeans[[1]]$cluster,
                                               levels=order(centersAve))))
@@ -160,20 +161,21 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
           theme_classic())
 }
 
-for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
-  j <- i + 1
-  print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
-                                        y=colnames(dfClusterBest)[j],
-                                        color="cluster")) +
-          geom_encircle()+
-          geom_point(data=dfCenters, size=20, shape="+") +
-          geom_point(data=dfCenters, size=2, color="black") +
-          scale_color_brewer(type="qual", palette="Dark2") +
-          facet_wrap(~cluster) + 
-          scale_x_continuous(breaks=seq(0,1,by=.25)) + 
-          scale_y_continuous(breaks=seq(0,1,by=.25)) + 
-          theme_classic())
-}
+# for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
+#   j <- i + 1
+#   print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+#                                         y=colnames(dfClusterBest)[j],
+#                                         color="cluster")) +
+#           geom_encircle()+
+#           geom_point(data=dfCenters, size=20, shape="+") +
+#           geom_point(data=dfCenters, size=2, color="black") +
+#           scale_color_brewer(type="qual", palette="Dark2") +
+#           facet_wrap(~cluster) + 
+#           scale_x_continuous(breaks=seq(0,1,by=.25)) + 
+#           scale_y_continuous(breaks=seq(0,1,by=.25)) + 
+#           theme_classic())
+# }
+
 
 ### 03.2 hclust ####
 ## ... select reference (optimum) attempt ####
@@ -195,6 +197,80 @@ ggplot(NULL, aes(x=clusteringsHc$sil)) +
   theme_classic()
 
 ## ... visualize reference ####
+# ... ... centers ####
+dfCenters <- as.data.frame(refHc_sil$centers[[1]])[,-1]
+centersAve <- apply(dfCenters,1,mean)
+
+dfCenters$cluster <- factor(as.numeric(factor(1:4,levels=order(centersAve)))) 
+dfCentersL <- pivot_longer(dfCenters,1:4,names_to="question",
+                           values_to = "mean")
+dfCentersL <- as.data.frame(dfCentersL)
+dfCentersL <- dfCentersL[order(dfCentersL$cluster),]
+
+
+ggplot(dfCentersL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + 
+  scale_fill_viridis_b(option="magma", direction=-1) +
+  theme_bw()
+
+# ... ... observations ####
+
+dfClusterBest <- data.frame(
+  dfDataF1m, cluster=factor(as.numeric(factor(refHc_sil$cluster[[1]],
+                                              levels=order(centersAve))))
+)
+
+# ggpairs(dfClusterBest[,1:4],
+#         diag="blankDiag",
+#         mapping=ggplot2::aes(color=dfClusterBest$cluster),
+#         lower=list(continuous=
+#                      wrap("points",alpha=.2, position=position_jitter())))+
+#   scale_fill_brewer(type="qual")+
+#   theme_classic()
+# 
+# for(i in seq(1,ncol(dfClusterBest)-2)) {
+#   for(j in seq(i+1,ncol(dfClusterBest)-1)) {
+#     print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+#                                           y=colnames(dfClusterBest)[j],
+#                                           color="cluster"))+
+#             geom_encircle() +
+#             geom_jitter(shape=21, alpha=.8)+
+#             geom_point(data=dfCenters, size=20, shape="+")+
+#             scale_color_brewer(type="qual", palette="Dark2")+
+#             theme_classic())
+#   }
+# }
+
+for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
+  j <- i + 1
+  print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+                                        y=colnames(dfClusterBest)[j],
+                                        color="cluster")) +
+          geom_encircle() +
+          geom_jitter(shape=21, alpha=.2)+
+          geom_point(data=dfCenters, size=20, shape="+") +
+          geom_point(data=dfCenters, size=2, color="black") +
+          scale_color_brewer(type="qual", palette="Dark2") +
+          facet_wrap(~cluster) + 
+          scale_x_continuous(breaks=seq(0,1,by=.25)) + 
+          scale_y_continuous(breaks=seq(0,1,by=.25)) + 
+          theme_classic())
+}
+
+# for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
+#   j <- i + 1
+#   print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+#                                         y=colnames(dfClusterBest)[j],
+#                                         color="cluster")) +
+#           geom_encircle()+
+#           geom_point(data=dfCenters, size=20, shape="+") +
+#           geom_point(data=dfCenters, size=2, color="black") +
+#           scale_color_brewer(type="qual", palette="Dark2") +
+#           facet_wrap(~cluster) + 
+#           scale_x_continuous(breaks=seq(0,1,by=.25)) + 
+#           scale_y_continuous(breaks=seq(0,1,by=.25)) + 
+#           theme_classic())
+# }
 
 
 
