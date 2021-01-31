@@ -820,6 +820,31 @@ for(selk in k_range) {
 # https://sele.inf.um.es/evaluome/help.html
 # A Jaccard-index mean above 0.75 should be expected
 
+# ... apriori factors, kmeans (nstart = 25) ####
+if(!file.exists("km_clust/kmF1m_ns25_bs.rda")) {
+  clusterings <- data.frame(k=sort(rep(k_range,1000)),
+                            i=rep(1:1000,length(k_range)),
+                            kmeans=NA)
+  lstKmeans<-as.list(rep(NA,1000 * length(k_range)))
+  for(cl in 1:nrow(clusterings)) {
+    dfDataF1m_bs <- dfDataF1m[
+      sample(1:nrow(dfDataF1m),nrow(dfDataF1m),replace = TRUE),]
+    lstKmeans[[cl]] <- 
+      kmeans(dfDataF1m_bs, centers= clusterings$k[cl], nstart=25,
+             iter.max=20)
+    # print(cl)
+  }
+  
+  clusterings$kmeans <- lstKmeans
+  str(clusterings$kmeans[1])
+  
+  clusterings$totwss <- sapply(clusterings$kmeans,
+                               function(x) x$tot.withinss)
+  clusterings$bss <- sapply(clusterings$kmeans,
+                            function(x) x$betweenss)
+  save(clusterings, file="km_clust/kmF1m_ns25_bs.rda")
+}
+
 
 ### 03.3 Validation of an individual classification ####
 ## 03.3.1 Silhouette index ####
