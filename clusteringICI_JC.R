@@ -820,7 +820,7 @@ for(selk in k_range) {
 # https://sele.inf.um.es/evaluome/help.html
 # A Jaccard-index mean above 0.75 should be expected
 
-# ... apriori factors, kmeans (nstart = 25) ####
+# ... a priori factors, kmeans (nstart = 25) ####
 if(!file.exists("km_clust/kmF1m_ns25_bs.rda")) {
   clusterings <- data.frame(k=sort(rep(k_range,1000)),
                             i=rep(1:1000,length(k_range)),
@@ -843,6 +843,30 @@ if(!file.exists("km_clust/kmF1m_ns25_bs.rda")) {
   clusterings$bss <- sapply(clusterings$kmeans,
                             function(x) x$betweenss)
   save(clusterings, file="km_clust/kmF1m_ns25_bs.rda")
+}
+
+# ... a priori factors, hclust (Ward, euclidean) ####
+if(!file.exists("km_clust/hF1m_W_euc_bs.rda")) {
+  clusterings <- data.frame(i=1:1000,
+                            ordering = NA,
+                            hc=NA)
+  lstOrder <- as.list(rep(NA,1000))
+  lstHC<-as.list(rep(NA,1000))
+  for(cl in 1:nrow(clusterings)) {
+    dfDataF1m_bs <- dfDataF1m[
+      sample(1:nrow(dfDataF1m),nrow(dfDataF1m),replace = TRUE),]
+    lstOrder[[cl]] <- sample(1:nrow(dfDataF1m),nrow(dfDataF1m)) 
+    df1 <- dfDataF1m_bs[lstOrder[[cl]],]
+    distData <- dist(df1, method="euclidean")
+    lstHC[[cl]] <- 
+      agnes(distData, diss=T, method="ward")
+  }
+  
+  clusterings$ordering <- lstOrder
+  clusterings$hc <- lstHC
+  str(clusterings$hc[1])
+  
+  save(clusterings, file="km_clust/hF1m_W_euc_bs.rda")
 }
 
 

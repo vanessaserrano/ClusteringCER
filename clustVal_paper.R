@@ -7,7 +7,8 @@
 options(install.packages.check.source = "no")
 
 pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "cluster",
-         "GGally", "ggalt", "mclust")
+         "GGally", "ggalt", "mclust", "factoextra")
+# factoextra: Extract and Visualize the Results of Multivariate Data Analyses
 # cluster: "Finding Groups in Data": Cluster Analysis Extended, Rousseeuw et al. 
 # ggalt::geom_encircle
 # mclust: Gaussian Mixture Modelling for Model-Based Clustering, 
@@ -75,7 +76,7 @@ for(i in clusteringsHc$i) {
 clusteringsHc$cluster <- lstPartitions
 clusteringsHc$centers <- lstCenters
 
-str(clusteringsHc)
+# str(clusteringsHc)
 
 
 #### 03 REFERENCE ATTEMPT FOR EACH METHOD ####
@@ -84,32 +85,38 @@ disF1m <- dist(dfDataF1m, method="euclidean")
 
 ### 03.1 kmeans ####
 ## ... select reference (optimum) attempt ####
+# As maximum silhouette
+clusteringsKm$sil <- apply(clusteringsKm, 1,
+                           function(x) {
+                             sil <- silhouette(x$kmeans$cluster,
+                                               dist=disF1m,method="complete")
+                             mean(sil[,3])
+                           })
+refKm_sil <- clusteringsKm[which.max(clusteringsKm$sil),]
+
 # As minimum total within
 refKm_tw <- clusteringsKm[which.min(apply(clusteringsKm, 1, 
                                function(x) x$totwss)),]
 
-# As maximum silhouette
-clusteringsKm$sil <- apply(clusteringsKm, 1,
-                   function(x) {
-                     sil <- silhouette(x$kmeans$cluster,
-                               dist=disF1m,method="complete")
-                     mean(sil[,3])
-                   })
-refKm_sil <- clusteringsKm[which.max(clusteringsKm$sil),]
-
 # ARI goes from 0 to 1. 1 means identical partitions. 0 means random 
 adjustedRandIndex(refKm_tw$kmeans[[1]]$cluster,refKm_sil$kmeans[[1]]$cluster)
 
-ggplot(NULL, aes(x=clusteringsKm$sil)) +
-  geom_histogram(fill="lightgrey", color="black", binwidth=0.002) +
-  theme_classic()
+ggplot(NULL, aes(x=clusteringsKm$sil, y=..density..)) +
+  geom_histogram(color="black", fill="lightgrey", binwidth = 0.02) +
+  geom_density() +
+  scale_x_continuous(limits=c(-1,1))+
+  labs(y="", x ="average silhouette") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank())
 
-## ... visualize reference ####
+## ... visualize reference (silhouette) ####
 # ... ... centers ####
 dfCenters <- as.data.frame(refKm_sil$kmeans[[1]]$centers)
 centersAve <- apply(dfCenters,1,mean)
 
-dfCenters$cluster <- factor(as.numeric(factor(1:4,levels=order(centersAve)))) 
+dfCenters$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
 dfCentersL <- pivot_longer(dfCenters,1:4,names_to="question",
                            values_to = "mean")
 
@@ -176,11 +183,81 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 #           theme_classic())
 # }
 
+## ... visualize reference (total within) ####
+# ... ... centers ####
+dfCenters <- as.data.frame(refKm_tw$kmeans[[1]]$centers)
+centersAve <- apply(dfCenters,1,mean)
+
+dfCenters$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
+dfCentersL <- pivot_longer(dfCenters,1:4,names_to="question",
+                           values_to = "mean")
+
+ggplot(dfCentersL,aes(x=cluster,y=question,fill=mean)) +
+  geom_tile() + 
+  scale_fill_viridis_b(option="magma", direction=-1) +
+  theme_bw()
+
+# ... ... observations ####
+dfClusterBest <- data.frame(
+  dfDataF1m, cluster=factor(as.numeric(factor(refKm_tw$kmeans[[1]]$cluster,
+                                              levels=order(centersAve))))
+)
+
+# ggpairs(dfClusterBest[,1:4],
+#         diag="blankDiag",
+#         mapping=ggplot2::aes(color=dfClusterBest$cluster),
+#         lower=list(continuous=
+#                      wrap("points",alpha=.2, position=position_jitter())))+
+#   scale_fill_brewer(type="qual")+
+#   theme_classic()
+# 
+# for(i in seq(1,ncol(dfClusterBest)-2)) {
+#   for(j in seq(i+1,ncol(dfClusterBest)-1)) {
+#     print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+#                                           y=colnames(dfClusterBest)[j],
+#                                           color="cluster"))+
+#             geom_encircle() +
+#             geom_jitter(shape=21, alpha=.8)+
+#             geom_point(data=dfCenters, size=20, shape="+")+
+#             scale_color_brewer(type="qual", palette="Dark2")+
+#             theme_classic())
+#   }
+# }
+
+for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
+  j <- i + 1
+  print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+                                        y=colnames(dfClusterBest)[j],
+                                        color="cluster")) +
+          geom_encircle() +
+          geom_jitter(shape=21, alpha=.2)+
+          geom_point(data=dfCenters, size=20, shape="+") +
+          geom_point(data=dfCenters, size=2, color="black") +
+          scale_color_brewer(type="qual", palette="Dark2") +
+          facet_wrap(~cluster) + 
+          scale_x_continuous(breaks=seq(0,1,by=.25)) + 
+          scale_y_continuous(breaks=seq(0,1,by=.25)) + 
+          theme_classic())
+}
+
+# for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
+#   j <- i + 1
+#   print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
+#                                         y=colnames(dfClusterBest)[j],
+#                                         color="cluster")) +
+#           geom_encircle()+
+#           geom_point(data=dfCenters, size=20, shape="+") +
+#           geom_point(data=dfCenters, size=2, color="black") +
+#           scale_color_brewer(type="qual", palette="Dark2") +
+#           facet_wrap(~cluster) + 
+#           scale_x_continuous(breaks=seq(0,1,by=.25)) + 
+#           scale_y_continuous(breaks=seq(0,1,by=.25)) + 
+#           theme_classic())
+# }
+
 
 ### 03.2 hclust ####
 ## ... select reference (optimum) attempt ####
-# As minimum total within
-
 # As maximum silhouette
 clusteringsHc$sil <- apply(clusteringsHc, 1,
                            function(x) {
@@ -192,21 +269,29 @@ refHc_sil <- clusteringsHc[which.max(clusteringsHc$sil),]
 
 adjustedRandIndex(refHc_sil$cluster[[1]],refKm_sil$kmeans[[1]]$cluster)
 
-ggplot(NULL, aes(x=clusteringsHc$sil)) +
-  geom_histogram(fill="lightgrey", color="black", binwidth=0.002) +
-  theme_classic()
+ggplot(NULL, aes(x=clusteringsHc$sil, y=..density..)) +
+  geom_histogram(color="black", fill="lightgrey", binwidth = 0.02) +
+  geom_density() +
+  scale_x_continuous(limits=c(-1,1))+
+  labs(y="", x ="average silhouette") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank())
+
+# As minimum total within
+# Should we do it?
 
 ## ... visualize reference ####
 # ... ... centers ####
 dfCenters <- as.data.frame(refHc_sil$centers[[1]])[,-1]
 centersAve <- apply(dfCenters,1,mean)
 
-dfCenters$cluster <- factor(as.numeric(factor(1:4,levels=order(centersAve)))) 
+dfCenters$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
 dfCentersL <- pivot_longer(dfCenters,1:4,names_to="question",
                            values_to = "mean")
 dfCentersL <- as.data.frame(dfCentersL)
 dfCentersL <- dfCentersL[order(dfCentersL$cluster),]
-
 
 ggplot(dfCentersL,aes(x=cluster,y=question,fill=mean)) +
   geom_tile() + 
@@ -273,20 +358,89 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 # }
 
 
-
 #### 04 VALIDATION OF THE CLUSTERS ####
 
 ### 04.1 Split halves ####
+# There is a significant risk of missing clusters.
+# In case this approach is followed many different halves should be
+# tested and presented.
 
 ### 04.2 Compare repetitions ####
-# AMONG THEM OR WITH REFERENCE
+# ... centers distribution
+sel <- clusteringsKm$kmeans
 
-# ARI
+for(i in seq(length(sel))) {
+  if(i == 1) {
+    dfCenters <- as.data.frame(sel[[i]]$centers)
+    dfCenters$i <- i
+  } else {
+    dfCenters1 <- as.data.frame(sel[[i]]$centers)
+    dfCenters1$i <- i
+    dfCenters <- rbind(dfCenters,dfCenters1)
+  }
+}
 
+dfCentersL <- dfCenters %>% 
+  pivot_longer(.,1:(ncol(.)-1), names_to = "factor", values_to = "mean")
+
+dfBest <- as.data.frame(refKm_sil$kmeans[[1]]$centers)
+centersAve <- apply(dfBest,1,mean)
+
+dfBest$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
+
+dfBestL <- dfBest %>% 
+  pivot_longer(.,1:(ncol(.)-1), names_to = "factor", values_to = "mean")
+
+ggplot(dfCentersL, aes(x=mean)) + 
+  geom_vline(aes(color=cluster,xintercept=mean),
+             data=dfBestL, size=1.5) +
+  geom_density() +
+  scale_x_continuous(breaks=seq(0,1,by=.25), limits=c(0,1)) + 
+  facet_wrap(~factor, scales="free_y") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank())
+
+partBest <- refKm_sil$kmeans[[1]]$cluster
+
+ari <- numeric(length(sel))
+for(i in seq(length(sel))) {
+  part1 <- sel[[i]]$cluster
+  cluOrder <- unique(part1)
+  part1 <- as.numeric(factor(part1,
+                             levels=cluOrder))
+  ari[i] <- adjustedRandIndex(part1,partBest)
+}
+
+# visualize ARI distribution
+ggplot(NULL, aes(x=ari, y=..density..)) +
+  geom_histogram(color="black", fill="lightgrey") +
+  geom_density() +
+  scale_x_continuous(limits=c(0,1))+
+  labs(y="") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank())
 
 ### 04.3 Bootstrap ####
 
+
+
 ### 04.4 Silhouette analysis ####
+dfClusterBest <- data.frame(
+  dfDataF1m, cluster=factor(as.numeric(factor(refKm_sil$kmeans[[1]]$cluster,
+                                              levels=order(centersAve))))
+)
+
+sil <- silhouette(as.numeric(dfClusterBest$cluster),
+                  dist=dist(dfDataF1m),method="complete")
+fviz_silhouette(sil) +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  theme(legend.position = "none")
+
 
 #### 05 VALIDATION OF INDIVIDUAL CLASSIFICATION ####
 
