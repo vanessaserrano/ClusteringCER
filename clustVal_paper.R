@@ -168,6 +168,19 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
           theme_classic())
 }
 
+dfClusterBest[1:10,]
+
+dfClusterBestL <- dfClusterBest %>% 
+  pivot_longer(1:4,names_to="factor",values_to="value")
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  labs(x="", y="")+
+  theme_classic()
+
 # for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 #   j <- i + 1
 #   print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
