@@ -853,10 +853,9 @@ if(!file.exists("km_clust/hF1m_W_euc_bs.rda")) {
   lstOrder <- as.list(rep(NA,1000))
   lstHC<-as.list(rep(NA,1000))
   for(cl in 1:nrow(clusterings)) {
-    dfDataF1m_bs <- dfDataF1m[
-      sample(1:nrow(dfDataF1m),nrow(dfDataF1m),replace = TRUE),]
-    lstOrder[[cl]] <- sample(1:nrow(dfDataF1m),nrow(dfDataF1m)) 
-    df1 <- dfDataF1m_bs[lstOrder[[cl]],]
+    lstOrder[[cl]] <- sample(1:nrow(dfDataF1m),
+                             nrow(dfDataF1m),replace=T) 
+    df1 <- dfDataF1m[lstOrder[[cl]],]
     distData <- dist(df1, method="euclidean")
     lstHC[[cl]] <- 
       agnes(distData, diss=T, method="ward")
