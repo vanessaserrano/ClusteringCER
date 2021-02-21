@@ -7,7 +7,7 @@
 options(install.packages.check.source = "no")
 
 pckgs<-c("tidyverse", "ggthemes","RColorBrewer", "cluster",
-         "GGally", "ggalt", "mclust", "factoextra")
+         "GGally", "ggalt", "mclust", "factoextra", "gtools")
 # factoextra: Extract and Visualize the Results of Multivariate Data Analyses
 # cluster: "Finding Groups in Data": Cluster Analysis Extended, Rousseeuw et al. 
 # ggalt::geom_encircle
@@ -168,7 +168,7 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
           theme_classic())
 }
 
-dfClusterBest[1:10,]
+# dfClusterBest[1:10,]
 
 dfClusterBestL <- dfClusterBest %>% 
   pivot_longer(1:4,names_to="factor",values_to="value")
@@ -180,6 +180,16 @@ ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
   scale_color_brewer(type="qual", palette="Dark2") +
   labs(x="", y="")+
   theme_classic()
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  facet_wrap(~cluster)+
+  labs(x="", y="")+
+  theme_classic()
+
 
 # for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 #   j <- i + 1
@@ -253,6 +263,27 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
           theme_classic())
 }
 
+dfClusterBestL <- dfClusterBest %>% 
+  pivot_longer(1:4,names_to="factor",values_to="value")
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  labs(x="", y="")+
+  theme_classic()
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  facet_wrap(~cluster)+
+  labs(x="", y="")+
+  theme_classic()
+
+
 # for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 #   j <- i + 1
 #   print(ggplot(dfClusterBest,aes_string(x=colnames(dfClusterBest)[i],
@@ -293,7 +324,7 @@ ggplot(NULL, aes(x=clusteringsHc$sil, y=..density..)) +
         axis.line.y = element_blank())
 
 # As minimum total within
-# Should we do it?
+# Should we do it? Not done
 
 ## ... visualize reference ####
 # ... ... centers ####
@@ -370,6 +401,26 @@ for(i in seq(1,ncol(dfClusterBest)-2, by=2)) {
 #           theme_classic())
 # }
 
+dfClusterBestL <- dfClusterBest %>% 
+  pivot_longer(1:4,names_to="factor",values_to="value")
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  labs(x="", y="")+
+  theme_classic()
+
+ggplot(dfClusterBestL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  facet_wrap(~cluster)+
+  labs(x="", y="")+
+  theme_classic()
+
 
 #### 04 VALIDATION OF THE CLUSTERS ####
 
@@ -439,12 +490,297 @@ ggplot(NULL, aes(x=ari, y=..density..)) +
         axis.line.y = element_blank())
 
 ### 04.3 Bootstrap ####
+## ... kmeans ####
+load("km_clust/kmF1m_ns25_bs.rda")
+clusteringsKmBs <- clusterings[clusterings$k==ksel,]
+
+lstCenters <- lapply(clusteringsKmBs$kmeans, function(x) as.data.frame(x$centers))
+lstClSizes <- lapply(clusteringsKmBs$kmeans, function(x) as.data.frame(table(x$cluster)))
+
+dfCentersBest <- as.data.frame(refKm_tw$kmeans[[1]]$centers)
+clSize <- as.data.frame(table(refKm_tw$kmeans[[1]]$cluster))
+dfCentersBest$n <- clSize$Freq 
+
+centersAve <- apply(dfCentersBest[,1:4],1,mean)
+dfCentersBest$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
+dfCentersBest <- dfCentersBest[order(dfCentersBest$cluster),]
+
+dfPermutations <- permutations(6,6)
+
+lstClMatches <- as.list(rep(NA,1000))
+i <- 1
+for(i in 1:length(lstCenters)) {
+  dfDistances <- as.data.frame(dfPermutations)
+  dfDistances$dist <- NA
+  centersDist <- 0
+  j <- 1
+  for(j in seq(nrow(dfDistances))) {
+    centerOrder <- unlist(dfDistances[j,])
+    dfCentersActual <- lstCenters[[i]]
+    dfCentersActual$n <- lstClSizes[[i]]$Freq 
+    k <- 1
+    centersDist <- 0
+    for(k in seq(nrow(dfCentersBest))) {
+      centersDist <- sum(c(centersDist,
+                           dist(matrix(c(unlist(dfCentersBest[k,1:4]),
+                                       unlist(dfCentersActual[centerOrder[k],1:4])),
+                                       nrow=2, byrow=T))))  
+    }
+    dfDistances$dist[j] <- centersDist
+  }
+  lstClMatches[[i]] <- dfDistances[which.min(dfDistances$dist),]
+}
+
+sumDist <- lapply(lstClMatches, function(x) x$dist)
+sumDist <- unlist(sumDist)
+
+ggplot(NULL, aes(x=sumDist)) + 
+  geom_histogram(fill="lightgray", color="black") +
+  theme_classic()
+
+data.frame(dfCentersBest[,1:5], ave=apply(dfCentersBest[,1:4],1,mean))
+i <- 2
+cbind(lstCenters[[i]],n=lstClSizes[[i]][,2])[as.numeric(lstClMatches[[i]][1:ksel]),]
+
+for(k in seq(nrow(dfCentersBest))) {
+  dfClCenterDist <- as.data.frame(matrix(rep(0,length(lstCenters)*5),
+                                         ncol=5))
+  colnames(dfClCenterDist) <- colnames(dfCentersBest[,1:5])
+  for(i in 1:length(lstCenters)) {
+    dfClCenterDist[i,] <- cbind(lstCenters[[i]],
+                                n=lstClSizes[[i]][,2])[
+                                  as.numeric(lstClMatches[[i]][1:ksel]),][k,]
+  }
+  if(k==1) {
+    dfCentersDist <- cbind(cluster=k, dfClCenterDist)
+  } else {
+    dfCentersDist <- rbind(dfCentersDist,
+      cbind(cluster=k, dfClCenterDist))
+  }
+}
+
+dfCentersDistL <- dfCentersDist[,1:5] %>% 
+  pivot_longer(2:5, names_to="factor") 
+
+dfCentersDistL$cluster <- factor(dfCentersDistL$cluster)
+dfCentersDistL$factor <- factor(dfCentersDistL$factor)
+
+dfCentersBest[,1:4]
+
+dfCentersBestL <- cbind(cluster=1:ksel, dfCentersBest[,1:4]) %>% 
+  pivot_longer(2:5, names_to="factor")
+
+dfCentersBestL$cluster <- factor(dfCentersBestL$cluster)
+dfCentersBestL$factor <- factor(dfCentersBestL$factor)
+
+ggplot(dfCentersDistL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_point(data=dfCentersBestL, shape=3, size=2, color="black")+
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  facet_wrap(~cluster)+
+  labs(x="", y="")+
+  theme_classic()
+
+# Bootstraped intervals 
+# (+- 1.96 s, alfa = 0.05, assumed normality)
+
+dfCentersIsd <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(CI = qnorm(.975) * sd(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+dfCentersIm <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(mean(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+(dfCentersI <- data.frame(dfCentersIm[,1:2],
+                          CI=paste(unlist(dfCentersIm[,3]),"\u00b1",
+                                   unlist(dfCentersIsd[,3]))))
 
 
+# Bias-corrected bootstraped intervals 
+# (+- 1.96 s, alfa = 0.05, assumed normality)
+
+dfCentersIsd <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(CI = qnorm(.975) * sd(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+dfCentersIm <- data.frame(cluster=1:ksel, dfCentersBest[1:5]) %>% 
+  pivot_longer(2:6, names_to="factor") %>% 
+  arrange(cluster,factor)
+  
+(dfCentersI <- data.frame(dfCentersIm[,1:2],
+                         CI=paste(unlist(dfCentersIm[,3]),"\u00b1",
+                                  unlist(dfCentersIsd[,3]))))
+
+## ... hclust ####
+load("km_clust/hF1m_W_euc_bs.rda")
+clusteringsHcBs <- clusterings
+
+lstPartitions <- as.list(rep(NA,1000))
+lstCenters <- as.list(rep(NA,1000))
+
+i<-100
+for(i in clusteringsHcBs$i) {
+  cl1 <- cutree(clusteringsHcBs$hc[[i]],ksel)
+  lstPartitions[[i]] <- as.numeric(factor(cl1,levels=unique(cl1)))
+  lstCenters[[i]] <- data.frame(
+    dfDataF1m[clusteringsHcBs$ordering[[i]],],
+    cluster=lstPartitions[[i]]) %>% 
+    group_by(cluster) %>% 
+    summarise(across(1:4,mean),.groups="drop_last")
+}
+clusteringsHcBs$cluster <- lstPartitions
+clusteringsHcBs$centers <- lstCenters
+
+lstClSizes <- lapply(clusteringsHcBs$cluster, function(x) as.data.frame(table(x)))
+
+dfCentersBest <- as.data.frame(refHc_sil$centers)[,2:5]
+clSize <- as.data.frame(table(refHc_sil$cluster))
+dfCentersBest$n <- clSize$Freq 
+
+centersAve <- apply(dfCentersBest[,1:4],1,mean)
+dfCentersBest$cluster <- factor(as.numeric(factor(1:ksel,levels=order(centersAve)))) 
+dfCentersBest <- dfCentersBest[order(dfCentersBest$cluster),]
+
+dfPermutations <- permutations(6,6)
+
+lstClMatches <- as.list(rep(NA,1000))
+i <- 1
+for(i in 1:length(lstCenters)) {
+  dfDistances <- as.data.frame(dfPermutations)
+  dfDistances$dist <- NA
+  centersDist <- 0
+  for(j in seq(nrow(dfDistances))) {
+    centerOrder <- unlist(dfDistances[j,])
+    dfCentersActual <- lstCenters[[i]][,2:5]
+    dfCentersActual$n <- lstClSizes[[i]]$Freq 
+    k <- 1
+    centersDist <- 0
+    for(k in seq(nrow(dfCentersBest))) {
+      centersDist <- sum(c(centersDist,
+                           dist(matrix(c(unlist(dfCentersBest[k,1:4]),
+                                         unlist(dfCentersActual[centerOrder[k],
+                                                                colnames(dfCentersBest)[1:4]])),
+                                       nrow=2, byrow=T))))  
+    }
+    dfDistances$dist[j] <- centersDist
+  }
+  lstClMatches[[i]] <- dfDistances[which.min(dfDistances$dist),]
+}
+
+sumDist <- lapply(lstClMatches, function(x) x$dist)
+sumDist <- unlist(sumDist)
+
+ggplot(NULL, aes(x=sumDist)) + 
+  geom_histogram(fill="lightgray", color="black") +
+  theme_classic()
+
+data.frame(dfCentersBest[,1:5], ave=apply(dfCentersBest[,1:4],1,mean))
+i <- 2
+cbind(lstCenters[[i]],n=lstClSizes[[i]][,2])[as.numeric(lstClMatches[[i]][1:ksel]),]
+
+for(k in seq(nrow(dfCentersBest))) {
+  dfClCenterDist <- as.data.frame(matrix(rep(0,length(lstCenters)*5),
+                                         ncol=5))
+  colnames(dfClCenterDist) <- colnames(dfCentersBest[,1:5])
+  for(i in 1:length(lstCenters)) {
+    dfClCenterDist[i,] <- cbind(lstCenters[[i]][,2:5],
+                                n=lstClSizes[[i]][,2])[
+                                  as.numeric(lstClMatches[[i]][1:ksel]),][k,]
+  }
+  if(k==1) {
+    dfCentersDist <- cbind(cluster=k, dfClCenterDist)
+  } else {
+    dfCentersDist <- rbind(dfCentersDist,
+                           cbind(cluster=k, dfClCenterDist))
+  }
+}
+
+dfCentersDistL <- dfCentersDist[,1:5] %>% 
+  pivot_longer(2:5, names_to="factor") 
+
+dfCentersDistL$cluster <- factor(dfCentersDistL$cluster)
+dfCentersDistL$factor <- factor(dfCentersDistL$factor)
+
+dfCentersBest[,1:4]
+
+dfCentersBestL <- cbind(cluster=1:ksel, dfCentersBest[,1:4]) %>% 
+  pivot_longer(2:5, names_to="factor")
+
+dfCentersBestL$cluster <- factor(dfCentersBestL$cluster)
+dfCentersBestL$factor <- factor(dfCentersBestL$factor)
+
+ggplot(dfCentersDistL,aes(x=factor, fill=cluster, color=cluster, y=value)) +
+  geom_boxplot(alpha=0.4, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_boxplot(fill=NA, size=.6, position = position_dodge2(padding=.2), width=.4, outlier.color = NA) +
+  geom_point(data=dfCentersBestL, shape=3, size=2, color="black")+
+  scale_fill_brewer(type="qual", palette="Dark2") +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  facet_wrap(~cluster)+
+  labs(x="", y="")+
+  theme_classic()
+
+# Bootstraped intervals 
+# (+- 1.96 s, alfa = 0.05, assumed normality)
+
+dfCentersIsd <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(CI = qnorm(.975) * sd(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+dfCentersIm <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(mean(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+(dfCentersI <- data.frame(dfCentersIm[,1:2],
+                          CI=paste(unlist(dfCentersIm[,3]),"\u00b1",
+                                   unlist(dfCentersIsd[,3]))))
+
+
+# Bias-corrected bootstraped intervals 
+# (+- 1.96 s, alfa = 0.05, assumed normality)
+
+dfCentersIsd <- dfCentersDist %>% 
+  pivot_longer(2:6, names_to="factor") %>%
+  group_by(cluster, factor) %>% 
+  summarise(CI = qnorm(.975) * sd(value), .groups = "drop") %>% 
+  arrange(cluster,factor)
+
+dfCentersIm <- data.frame(cluster=1:ksel, dfCentersBest[1:5]) %>% 
+  pivot_longer(2:6, names_to="factor") %>% 
+  arrange(cluster,factor)
+
+(dfCentersI <- data.frame(dfCentersIm[,1:2],
+                          CI=paste(unlist(dfCentersIm[,3]),"\u00b1",
+                                   unlist(dfCentersIsd[,3]))))
 
 ### 04.4 Silhouette analysis ####
+## ... kmeans ###
 dfClusterBest <- data.frame(
-  dfDataF1m, cluster=factor(as.numeric(factor(refKm_sil$kmeans[[1]]$cluster,
+  dfDataF1m, cluster=factor(as.numeric(factor(refKm_tw$kmeans[[1]]$cluster,
+                                              levels=order(centersAve))))
+)
+
+sil <- silhouette(as.numeric(dfClusterBest$cluster),
+                  dist=dist(dfDataF1m),method="complete")
+fviz_silhouette(sil) +
+  scale_color_brewer(type="qual", palette="Dark2") +
+  theme(legend.position = "none")
+
+## ... hclust ###
+dfClusterBest <- data.frame(
+  dfDataF1m, cluster=factor(as.numeric(factor(refHc_sil$cluster[[1]],
                                               levels=order(centersAve))))
 )
 
@@ -456,4 +792,4 @@ fviz_silhouette(sil) +
 
 
 #### 05 VALIDATION OF INDIVIDUAL CLASSIFICATION ####
-
+# Not to be detailed
