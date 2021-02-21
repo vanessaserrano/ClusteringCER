@@ -58,6 +58,14 @@ NbClust(dfDataF1m, distance="euclidean", min.nc = min(k_range),
         max.nc = max(k_range),
         method = "kmeans", index="all")
 
+factoextra::fviz_nbclust(dfDataF1m, kmeans, method = "wss", 
+                         k.max = max(k_range), nstart = 10) 
+factoextra::fviz_nbclust(dfDataF1m, kmeans, method = "silhouette", 
+                         k.max = max(k_range), nstart = 10) 
+factoextra::fviz_nbclust(dfDataF1m, kmeans, method = "gap_stat", 
+                         k.max = max(k_range), nstart = 10, iter.max = 20,
+                         nboot = 50)
+
 load("km_clust/kmF1m_ns25.rda")
 
 dfNClust <- data.frame(k=k_range, sil=NA, totwss=NA)
@@ -90,6 +98,14 @@ ggplot(dfNClust, aes(x=k, y=totwss)) + geom_point(shape=21) +
 NbClust(dfDataF1m, distance="euclidean", min.nc = min(k_range),
         max.nc = max(k_range),
         method = "ward.D2", index="all")
+
+factoextra::fviz_nbclust(dfDataF1m, hcut, method = "wss", 
+                         k.max = max(k_range), nstart = 10) 
+factoextra::fviz_nbclust(dfDataF1m, hcut, method = "silhouette", 
+                         k.max = max(k_range), nstart = 10) 
+factoextra::fviz_nbclust(dfDataF1m, hcut, method = "gap_stat", 
+                         k.max = max(k_range), nstart = 10, iter.max = 20,
+                         nboot = 50)
 
 load("km_clust/hF1m_W_euc.rda")
 clusteringsHc <- clusterings
