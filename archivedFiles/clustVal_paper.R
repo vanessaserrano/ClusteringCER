@@ -33,7 +33,7 @@ for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 #   Validation of the clusters + ICI example
 #   Validation of the classification of individual observations + ICI example
 
-ksel <- 4
+ksel <- 3
 
 #### 01 DATA PREPARATION ####
 dfData <- read.table("data/ICI.tsv",sep="\t",header=T)
