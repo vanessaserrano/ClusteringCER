@@ -192,7 +192,7 @@ ggarrange(spr.mt, NULL, NULL,
           spr.ei, mt.ei, cc.ei)
 dev.off()
 
-# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
@@ -331,7 +331,7 @@ ggarrange(spr.mt, NULL, NULL,
           legend="right")
 dev.off()
 
-# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
@@ -339,92 +339,134 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
-
 # To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
 # to add them all to the same canvas. 
 
 # SPR v MT
 dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
-spr.mt <- ggplot(ICI.s, aes(x = SPR, y = MT)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
+  group_by(SPR, MT) %>% summarise(cnt = n())
+
+spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4), name="Count") +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+leg <- spr.mt + theme(legend.position = "left",
+                      legend.text = element_text(size = 8),
+                      legend.title = element_text(size = 9))
+leg <- get_legend(leg)
 
 # SPR v EI
 dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
-spr.ei <- ggplot(ICI.s, aes(x = SPR, y = EI)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
+  group_by(SPR, EI) %>% summarise(cnt = n())
+
+spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
+        axis.title = element_text(size = 9),
+        legend.position="none")
 
 # SPR v CC
 dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
-spr.cc <- ggplot(ICI.s, aes(x = SPR, y = CC)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
+  group_by(SPR, CC) %>% summarise(cnt = n())
+
+spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
+        axis.title = element_text(size = 9),
+        legend.position="none")
 
 # MT v EI
 dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
-mt.ei <- ggplot(ICI.s, aes(x = MT, y = EI)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
+  group_by(MT, EI) %>% summarise(cnt = n())
+
+mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
-
+        axis.title = element_text(size = 9),
+        legend.position="none")
 # MT v CC
 dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
-mt.cc <- ggplot(ICI.s, aes(x = MT, y = CC)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
+  group_by(MT, CC) %>% summarise(cnt = n())
+
+mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
+        axis.title = element_text(size = 9),
+        legend.position="none")
 
 # CC v EI
 dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
-cc.ei <- ggplot(ICI.s, aes(x = CC, y = EI)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
+  group_by(CC, EI) %>% summarise(cnt = n())
+
+cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, size = cnt)) + # Make the plot
+  geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(range=c(1,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
+        axis.title = element_text(size = 9),
+        legend.position="none")
 
-png("Figures/F3_DescriptiveTogetherJitter.png", height = 5200, width = 5000, res = 900)
-ggarrange(spr.mt, NULL, NULL,
+png("Figures/F3_DescriptiveTogetherDots.png", 
+    height = 5200, width = 5000, res = 900)
+ggarrange(spr.mt, NULL, NULL, 
           spr.cc, mt.cc, NULL,
-          spr.ei, mt.ei, cc.ei)
+          spr.ei, mt.ei, cc.ei,
+          legend.grob=leg,
+          legend="right")
 dev.off()
 
 # Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
