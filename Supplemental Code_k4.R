@@ -217,7 +217,8 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, fill = cnt)) + # Make the plo
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
-                    name="Count") +
+                    name="Count",
+                    limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -241,7 +242,9 @@ spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, fill = cnt)) + # Make the plo
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1) +
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -260,7 +263,9 @@ spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, fill = cnt)) + # Make the plo
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1) +
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -279,7 +284,9 @@ mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, fill = cnt)) + # Make the plot
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1) +
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -297,7 +304,9 @@ mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, fill = cnt)) + # Make the plot
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1) +
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -316,14 +325,16 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, fill = cnt)) + # Make the plot
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1) +
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
 png("Figures/F3_DescriptiveTogetherHeatmap.png", 
-    height = 5200, width = 5000, res = 900)
+    height = 5200, width = 6000, res = 900)
 ggarrange(spr.mt, NULL, NULL, 
           spr.cc, mt.cc, NULL,
           spr.ei, mt.ei, cc.ei,
@@ -353,10 +364,13 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plo
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(name="Count") +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -379,10 +393,13 @@ spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, size = cnt)) + # Make the plo
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous() +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -400,10 +417,13 @@ spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, size = cnt)) + # Make the plo
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous() +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -421,10 +441,13 @@ mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, size = cnt)) + # Make the plot
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous() +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -441,10 +464,13 @@ mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, size = cnt)) + # Make the plot
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous() +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -462,17 +488,212 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, size = cnt)) + # Make the plot
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous() +
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
 png("Figures/F3_DescriptiveTogetherDots.png", 
-    height = 5200, width = 5000, res = 900)
+    height = 5200, width = 6000, res = 900)
+ggarrange(spr.mt, NULL, NULL, 
+          spr.cc, mt.cc, NULL,
+          spr.ei, mt.ei, cc.ei,
+          legend.grob=leg,
+          legend="right")
+dev.off()
+
+# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
+
+# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (COLORED DOTS) -------
+
+dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
+
+# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
+# to add them all to the same canvas. 
+
+# SPR v MT
+dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
+  group_by(SPR, MT) %>% summarise(cnt = n())
+MAXSPRMT <- max(ICI.s.count$cnt)
+
+spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, 
+                                  size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+leg <- spr.mt + theme(legend.position = "left",
+                      legend.text = element_text(size = 8),
+                      legend.title = element_text(size = 9))
+leg <- get_legend(leg)
+
+# SPR v EI
+dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
+  group_by(SPR, EI) %>% summarise(cnt = n())
+
+MAXSPREI <- max(ICI.s.count$cnt)
+
+spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, 
+                                  size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+# SPR v CC
+dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
+  group_by(SPR, CC) %>% summarise(cnt = n())
+
+MAXSPRCC <- max(ICI.s.count$cnt)
+
+spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, 
+                                  size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+# MT v EI
+dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
+  group_by(MT, EI) %>% summarise(cnt = n())
+
+MAXSMTEI <- max(ICI.s.count$cnt)
+
+mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, 
+                                 size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+# MT v CC
+dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
+  group_by(MT, CC) %>% summarise(cnt = n())
+
+MAXMTCC <- max(ICI.s.count$cnt)
+
+mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, 
+                                 size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+# CC v EI
+dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
+  group_by(CC, EI) %>% summarise(cnt = n())
+
+MAXCCEI <- max(ICI.s.count$cnt)
+
+cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, 
+                                 size = cnt, color = cnt)) + # Make the plot
+  geom_point() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,5)) +
+  scale_color_viridis(name="Count",direction=-1,
+                      guide="legend",
+                      limits=c(1,500))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+png("Figures/F3_DescriptiveTogetherCDots.png", 
+    height = 5200, width = 6000, res = 900)
 ggarrange(spr.mt, NULL, NULL, 
           spr.cc, mt.cc, NULL,
           spr.ei, mt.ei, cc.ei,
