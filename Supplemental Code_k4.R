@@ -346,16 +346,17 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
   group_by(SPR, MT) %>% summarise(cnt = n())
+MAXSPRMT <- max(ICI.s.count$cnt)
 
 spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4), name="Count") +
+  scale_size_continuous(name="Count") +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -371,15 +372,17 @@ dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicat
 ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
   group_by(SPR, EI) %>% summarise(cnt = n())
 
+MAXSPREI <- max(ICI.s.count$cnt)
+
 spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4)) +
+  scale_size_continuous() +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -390,15 +393,17 @@ dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicat
 ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
   group_by(SPR, CC) %>% summarise(cnt = n())
 
+MAXSPRCC <- max(ICI.s.count$cnt)
+
 spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4)) +
+  scale_size_continuous() +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -409,15 +414,17 @@ dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicate
 ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
   group_by(MT, EI) %>% summarise(cnt = n())
 
+MAXSMTEI <- max(ICI.s.count$cnt)
+
 mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4)) +
+  scale_size_continuous() +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -427,15 +434,17 @@ dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicate
 ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
   group_by(MT, CC) %>% summarise(cnt = n())
 
+MAXMTCC <- max(ICI.s.count$cnt)
+
 mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4)) +
+  scale_size_continuous() +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -446,15 +455,17 @@ dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicate
 ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
   group_by(CC, EI) %>% summarise(cnt = n())
 
+MAXCCEI <- max(ICI.s.count$cnt)
+
 cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, size = cnt)) + # Make the plot
-  geom_point() +
+  geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
   scale_x_continuous(breaks=seq(0,1,length.out = 5))+
   scale_y_continuous(breaks=seq(0,1,length.out = 5), 
                      limits = c(-0.125,1.25))+
-  scale_size_continuous(range=c(1,4)) +
+  scale_size_continuous() +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
