@@ -43,8 +43,8 @@ dir.create("Figures", showWarnings = F)
 
 # Set if repetitions should be calculated even when available.
 # If set to TRUE, execution may take some hours
-# If FALSE, 'hca#CLUSTERS_#REPS.rda', 'hca#CLUSTERS_#REPSboot.rda', 
-# 'kmn#CLUSTERS_#REPS.rda' and 'kmn#CLUSTERS_#REPSboot.rda' should be 
+# If FALSE, 'hca_#CLUSTERS_#REPS_reps.rda', 'hca_#CLUSTERS_#REPS_boot.rda', 
+# 'kmn_#CLUSTERS_#REPS_reps.rda' and 'kmn_#CLUSTERS_#REPS_boot.rda' should be 
 # in the working directory (where #CLUSTERS is the number of clusters 
 # and #REPS is the number of repetitions)
 CALC_REPS <- FALSE
@@ -1169,7 +1169,8 @@ iterations <- 1000       # 1000 is the suggested number of iterations
 
 # ...Conducting repetitions and saving results ----------------------
 
-if(CALC_REPS) {
+if(CALC_REPS | 
+   !file.exists(paste0("hca_",ksel,"_",iterations,"_reps.rda"))) {
   # We will store all results into an object called "clusterings", so we will set that up first to collect the
   # data order, the dendrogram information, within sum of squares for each cluster, and total sums of squares
   clusterings <- data.frame(i = 1:iterations,
@@ -1462,7 +1463,8 @@ dev.off()
 # solution to compare bootstrap examples.
 bestsoln <- clusteringshca$df[[bestsoln_sil]]
 
-if(CALC_REPS) {
+if(CALC_REPS | 
+   !file.exists(paste0("hca_",ksel,"_",iterations,"_boot.rda"))) {
   # This time, all we really need is the solutions in a data frame and adjusted Rand index
   clusterings <- data.frame(i = 1:iterations,
                             df = NA,
@@ -1529,7 +1531,8 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
 distData <- dist(ICI.s, method="euclidean") # dissimiliarity matrix to calculate silhouette
 df1 <- ICI.s                               # temp data set to avoid overwriting actual data in loop to come
 
-if(CALC_REPS) {
+if(CALC_REPS  | 
+   !file.exists(paste0("kmn_",ksel,"_",iterations,"_reps.rda"))) {
   clusterings <- data.frame(i = 1:iterations,
                             df = NA,
                             sil = NA,
@@ -1795,7 +1798,8 @@ dev.off()
 
 bestsoln <- clusteringskmn$df[[bestsoln_totss]]
 
-if(CALC_REPS) {
+if(CALC_REPS  | 
+   !file.exists(paste0("kmn_",ksel,"_",iterations,"_boot.rda"))) {
   # This time, all we really need is the solutions in a data frame and adjusted Rand index
   clusterings <- data.frame(i = 1:iterations,
                             df = NA,
