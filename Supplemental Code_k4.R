@@ -37,6 +37,7 @@ ICI.s <- ICI %>%
             CC = mean(c(cQ04, cQ09, cQ13, cQ17))) %>%
   select(SPR:CC)
 
+
 # Create Figures folder
 dir.create("Figures", showWarnings = F)
 
@@ -888,6 +889,9 @@ ggplot(dend.cust) +
         plot.title = element_text(hjust = .5, vjust = .5))
 dev.off()
 
+#### TODO: RETHINK VISUALIZATIONS ----
+
+
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
@@ -942,6 +946,9 @@ kmn.r %>%
             CC.s = sd(CC))
 
 
+#### TODO: RETHINK VISUALIZATIONS ----
+
+
 # ...Supplemental Figure 1: k-means using Euclidean distance with different starting centers on ICI ------------------
 
 # The only difference between this code and the one to produce Figure 5 is changing the seed, which pulls a different
@@ -982,6 +989,9 @@ ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   scale_color_viridis(discrete = TRUE) +
   theme(plot.title = element_text(size = 10, hjust = .5, vjust = .5))
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 kmn.r %>%
   group_by(Cluster) %>%
@@ -1141,20 +1151,23 @@ NbClust(ICI.s, distance="euclidean", min.nc = max(c(2,min(k_range))),
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
-# Example 8: 1,000 Repetitions to determine optimal solution (hierarchical) ---------------
+
+# First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
+# Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
+
+ksel <- 4                # 4 is the suggested number of clusters
+iterations <- 1000       # 1000 is the suggested number of iterations
+
+
+# Example 8: Repetitions to determine optimal solution (hierarchical) ---------------
 
     # /////////////////// WARNING WARNING WARNING /////////////////// #
 
 # WARNING: This section of code will take a considerable amount of time to run (2-10 hours depending
 # on the quality of your computer's processor)! If you want to verify the code is working, try changing the 
-# number of iterations to a smaller number, like 5, then change back to 1,000 once it is working.
+# number of iterations to a smaller number, like 5, then change back to the desired value once it is working.
 
-# ...Conducting 1,000 repetitions and saving results ----------------------
-
-# First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
-# Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
-ksel <- 4        # examine 4-cluster solution
-iterations <- 1000  # run 1,000 repetitions
+# ...Conducting repetitions and saving results ----------------------
 
 if(CALC_REPS) {
   # We will store all results into an object called "clusterings", so we will set that up first to collect the
@@ -1208,16 +1221,17 @@ if(CALC_REPS) {
   clusterings$avgsil <- lstAvgSil
   clusterings$centers <- lstCenters
   
-  save(clusterings, file="hca_1000_reps.rda")
+  save(clusterings, file=paste0("hca_",ksel,"_",iterations,"_reps.rda"))
 }
 
 # If you having previously run the code, you will need to call in the save results, otherwise, you can 
 # comment the line out:
-load("hca_1000_reps.rda")
+load(paste0("hca_",ksel,"_",iterations,"_reps.rda"))
 clusteringshca <- clusterings
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
-rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS")))
+rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS",
+                        "ksel", "iterations")))
 
 # ...Finding number of unique solutions -----------------------------------
 
@@ -1265,7 +1279,7 @@ hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Value = Value*100)
 
 # Create/Output the plot
-png("Figures/F7_hcabox.png", height = 2000, width = 2500, res = 600)
+png(paste0("Figures/F7_hca",ksel,"box.png"), height = 2000, width = 2500, res = 600)
 ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1275,6 +1289,9 @@ ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
 
@@ -1290,7 +1307,7 @@ hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png("Figures/SF2_hcabox2.png", height = 2000, width = 3500, res = 600)
+png(paste0("Figures/SF2_hca",ksel,"box2.png"), height = 2000, width = 3500, res = 600)
 ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1300,6 +1317,9 @@ ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # ...Supplemental Figure 3: Alternative Figure 7 (heat map) ------------------
 
@@ -1317,7 +1337,7 @@ hca.heat <- clusteringshca$centers[[bestsoln_sil]] %>%
   mutate(Value = round(Value*100, digits = 1))
 
 # Create/Output the plot
-png("Figures/SF3_hcaheat.png", height = 1500, width = 2500, res = 600)
+png(paste0("Figures/SF3_hca",ksel,"heat.png"), height = 1500, width = 2500, res = 600)
 ggplot(hca.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   geom_tile() +
   geom_text(aes(color = Value > 30)) +
@@ -1331,6 +1351,8 @@ ggplot(hca.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
 
 # ...Supplemental Figure 4: Alternative Figure 7 (scatter plots) --------------------------
 
@@ -1390,9 +1412,12 @@ hca.cc.ei <- ggplot(hca.scat, aes(x = CC, y = EI, color = Cluster)) +
 print(hca.cc.ei) # to view one plot by itself
 
 # Create/Output the two plots together
-png("Figures/SF4_hcascat.png", height = 2500, width = 4500, res = 600)
+png(paste0("Figures/SF4_hca",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
 ggarrange(hca.spr.mt, hca.cc.ei, widths = c(1,1.5))
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # Example 10: Silhouette Plot (hierarchical) ---------------------------------------------
 # ...Figure 8: Silhouette Plot --------------------------------------------
@@ -1410,7 +1435,7 @@ hca.sil <- clusteringshca$df[[bestsoln_sil]] %>%
          Silhouette = clusteringshca$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
-png("Figures/F8_hcasil.png", height = 1500, width = 2500, res = 600)
+png(paste0("Figures/F8_hca",ksel,"sil.png"), height = 1500, width = 2500, res = 600)
 ggplot(hca.sil, aes(x = 1:nrow(hca.sil), y = Silhouette, color = Cluster)) +
   geom_segment(aes(xend = 1:nrow(hca.sil), yend = 0)) +
   geom_hline(yintercept = mean(hca.sil$Silhouette), lty = 2) +
@@ -1430,15 +1455,12 @@ dev.off()
 # on the quality of your computer's processor)! If you want to verify the code is working, try changing the 
 # number of iterations to a smaller number, like 5, then change back to 1,000 once it is working.
 
-# ...Conducting 1,000 bootstrap samples and saving results ----------------------
+# ...Conducting bootstrap samples and saving results ----------------------
 
 # We have not yet gotten rid of our previous environment, so we still have an object that houses the "best"
 # solution according to silhouette or within SS, whichever we chose. We will use this solution as the default
 # solution to compare bootstrap examples.
 bestsoln <- clusteringshca$df[[bestsoln_sil]]
-
-# Define the number of iterations to be used
-iterations <- 1000  # run 1,000 repetitions
 
 if(CALC_REPS) {
   # This time, all we really need is the solutions in a data frame and adjusted Rand index
@@ -1469,18 +1491,18 @@ if(CALC_REPS) {
   clusterings$df <- lstDF
   clusterings$ari <- lstARI
   
-  save(clusterings, file="hca_1000_boot.rda")
+  save(clusterings, file=paste0("hca_",ksel,"_",iterations,"_boot.rda"))
 }
 
 # ...Supplemental Figure 5: Adjusted Rand-Index Comparison for HCA --------
 
 # Load the saved data and pull the ARI
-load("hca_1000_boot.rda")
+load(paste0("hca_",ksel,"_",iterations,"_boot.rda"))
 boothca <- clusterings
 boothca.ari <- data.frame(ARI = unlist(boothca$ari))
 
 # Plot/Output the desired graph:
-png("Figures/SF5_hcaboot.ari.png", height = 1500, width = 2000, res = 600)
+png(paste0("Figures/SF5_hca",ksel,"boot_ari.png"), height = 1500, width = 2000, res = 600)
 ggplot(boothca.ari, aes(x = ARI)) +
   geom_histogram(fill = "grey80", color = "black", binwidth = 0.025,
                  boundary=1) + 
@@ -1491,7 +1513,8 @@ ggplot(boothca.ari, aes(x = ARI)) +
 dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
-rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
+                        "ksel", "iterations")))
 
 # Example 12: k-means analyses --------------------------------------------
 
@@ -1503,8 +1526,6 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 # ...Conducting 1,000 repetitions and saving results ----------------------
 
-ksel <- 4        
-iterations <- 1000  
 distData <- dist(ICI.s, method="euclidean") # dissimiliarity matrix to calculate silhouette
 df1 <- ICI.s                               # temp data set to avoid overwriting actual data in loop to come
 
@@ -1545,16 +1566,17 @@ if(CALC_REPS) {
   clusterings$bwss <- lstBwSS
   clusterings$centers <- lstCenters
   
-  save(clusterings, file="kmn_1000_reps.rda")
+  save(clusterings, file=paste0("kmn_",ksel,"_",iterations,"_reps.rda"))
 }
 
 # If you having previously run the code, you will need to call in the save results, otherwise, you can 
 # comment the line out:
-load("kmn_1000_reps.rda")
+load(paste0("kmn_",ksel,"_",iterations,"_reps.rda"))
 clusteringskmn <- clusterings
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
-rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS")))
+rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS",
+                        "ksel", "iterations")))
 
 # ...Finding number of unique solutions -----------------------------------
 
@@ -1600,7 +1622,7 @@ kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png("Figures/F9_kmnbox.png", height = 2000, width = 2500, res = 600)
+png(paste0("Figures/F9_kmn",sel,"box.png"), height = 2000, width = 2500, res = 600)
 ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1610,6 +1632,9 @@ ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # ...Supplemental Figure 6: Alternative Figure 9 (boxplot 2) --------------------------
 
@@ -1625,7 +1650,7 @@ kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png("Figures/SF6_kmnbox2.png", height = 2000, width = 3500, res = 600)
+png(paste0("Figures/SF6_kmn",ksel,"box2.png"), height = 2000, width = 3500, res = 600)
 ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1635,6 +1660,9 @@ ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # ...Supplemental Figure 7: Alternative Figure 9 (heat map) ------------------
 
@@ -1652,7 +1680,7 @@ kmn.heat <- clusteringskmn$centers[[bestsoln_totss]] %>%
   mutate(Value = round(Value*100, digits = 1))
 
 # Create/Output the plot
-png("Figures/SF7_kmnheat.png", height = 1500, width = 2500, res = 600)
+png(paste0("Figures/SF7_kmn",ksel,"heat.png"), height = 1500, width = 2500, res = 600)
 
 ggplot(kmn.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   geom_tile() +
@@ -1667,6 +1695,9 @@ ggplot(kmn.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
 
 # ...Supplemental Figure 8: Alternative Figure 9 (scatter plots) --------------------------
 
@@ -1726,9 +1757,11 @@ kmn.cc.ei <- ggplot(kmn.scat, aes(x = CC, y = EI, color = Cluster)) +
 print(kmn.cc.ei) # to view one plot by itself
 
 # Create/Output the two plots together
-png("Figures/SF8_kmnscat.png", height = 2500, width = 4500, res = 600)
+png(paste0("Figures/SF8_kmn",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
 ggarrange(kmn.spr.mt, kmn.cc.ei, widths = c(1,1.5))
 dev.off()
+
+#### TODO: RETHINK VISUALIZATIONS ----
 
 
 # ...Supplemental Figure 9: Silhouette Plot (k-means) --------------------------------------------
@@ -1746,7 +1779,7 @@ kmn.sil <- clusteringskmn$df[[bestsoln_totss]] %>%
          Silhouette = clusteringskmn$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
-png("Figures/SF9_kmnsil.png", height = 1500, width = 2500, res = 600)
+png(paste0("Figures/SF9_kmn",ksel,"sil.png"), height = 1500, width = 2500, res = 600)
 ggplot(kmn.sil, aes(x = 1:nrow(kmn.sil), y = Silhouette, color = Cluster)) +
   geom_segment(aes(xend = 1:nrow(kmn.sil), yend = 0)) +
   geom_hline(yintercept = mean(kmn.sil$Silhouette), lty = 2) +
@@ -1758,13 +1791,9 @@ ggplot(kmn.sil, aes(x = 1:nrow(kmn.sil), y = Silhouette, color = Cluster)) +
         axis.text.x = element_blank())
 dev.off()
 
-# ...Conducting 1,000 bootstrap samples and saving results ----------------------
+# ...Conducting bootstrap samples and saving results ----------------------
 
-ksel <- 4
 bestsoln <- clusteringskmn$df[[bestsoln_totss]]
-
-# Define the number of iterations to be used
-iterations <- 1000  # run 1,000 repetitions
 
 if(CALC_REPS) {
   # This time, all we really need is the solutions in a data frame and adjusted Rand index
@@ -1795,17 +1824,17 @@ if(CALC_REPS) {
   clusterings$df <- lstDF
   clusterings$ari <- lstARI
   
-  save(clusterings, file="kmn_1000_boot.rda")
+  save(clusterings, file=paste0("kmn_",ksel,"_",iterations,"_boot.rda"))
 }
 
 # ...Supplemental Figure 10: Adjusted Rand-Index Comparison for k-means --------
 
-load("kmn_1000_boot.rda")
+load(paste0("kmn_",ksel,"_",iterations,"_boot.rda"))
 bootkmn <- clusterings
 bootkmn.ari <- data.frame(ARI = unlist(bootkmn$ari))
 
 # Plot/Output the desired graph:
-png("Figures/SF10_kmnboot.ari.png", height = 1500, width = 2000, res = 600)
+png(paste0("Figures/SF10_kmn",ksel,"boot_ari.png"), height = 1500, width = 2000, res = 600)
 ggplot(bootkmn.ari, aes(x = ARI)) +
   geom_histogram(fill = "grey80", color = "black", binwidth = 0.025,
                  boundary=1) + 
@@ -1814,4 +1843,3 @@ ggplot(bootkmn.ari, aes(x = ARI)) +
   scale_x_continuous(limits=c(0,1))+
   theme_classic()
 dev.off()
-
