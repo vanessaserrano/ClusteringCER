@@ -736,7 +736,7 @@ ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (original order)") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
@@ -794,7 +794,7 @@ ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and average linkage (original order)") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
@@ -835,7 +835,7 @@ ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Manhattan distance and Ward's linkage (original order)") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
@@ -879,7 +879,7 @@ ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (random order)") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
@@ -913,24 +913,26 @@ kmn.s <- kmn %>%
   mutate(n = round(n/nrow(ICI.s)*100, 1)) %>%
   arrange(-MT.m)
 
-# Rename arbirary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
+# Rename arbitrary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
 kmn.r <- kmn %>%
   mutate(Cluster = recode(Cluster, `1` = kmn.s$Cluster[1],
                           `2` = kmn.s$Cluster[2],
                           `3` = kmn.s$Cluster[3]))
 kmn.l <- kmn.r %>%
-  mutate(Cluster = paste0("Cluster ", Cluster, " (", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
+  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
   gather("Scale", "Score", -Cluster)
 
 # Create/Output the plot (Figure 5)
-png("Figures/F5_kmneucorig.png", res = 600, height = 1500, width = 3000)
-ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
-  geom_boxplot(alpha = .3) +
-  theme_classic() +
-  ggtitle("k-means with euclidean distance (random centers #1)") +
-  scale_fill_viridis(discrete = TRUE) +
+png("Figures/F5_kmneucorig.png", res = 600, height = 2000, width = 3500)
+ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
+  geom_boxplot(position = position_dodge2(padding=.2)) +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  theme(plot.title = element_text(size = 10, hjust = .5, vjust = .5))
+  facet_wrap(~Scale) +
+  guides(fill = "none", color = "none") +
+  ggtitle("k-means with euclidean distance (random centers #1)") +
+  labs(x="Scale", y="Score")+
+  theme_classic()
 dev.off()
 
 kmn.r %>%
@@ -976,18 +978,20 @@ kmn.r <- kmn %>%
                           `2` = kmn.s$Cluster[2],
                           `3` = kmn.s$Cluster[3]))
 kmn.l <- kmn.r %>%
-  mutate(Cluster = paste0("Cluster ", Cluster, " (", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
+  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
   gather("Scale", "Score", -Cluster)
 
 # Create/Output the plot (Figure 5)
-png("Figures/SF1_kmneucdiffcenters.png", res = 600, height = 1500, width = 3000)
-ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
-  geom_boxplot(alpha = .3) +
-  theme_classic() +
-  ggtitle("k-means with euclidean distance (random centers #2)") +
-  scale_fill_viridis(discrete = TRUE) +
+png("Figures/SF1_kmneucdiffcenters.png", res = 600, height = 2000, width = 3500)
+ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
+  geom_boxplot(position = position_dodge2(padding=.2)) +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  theme(plot.title = element_text(size = 10, hjust = .5, vjust = .5))
+  facet_wrap(~Scale) +
+  guides(fill = "none", color = "none") +
+  ggtitle("k-means with euclidean distance (random centers #2)") +
+  labs(x="Scale", y="Score")+
+  theme_classic()
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -1081,7 +1085,7 @@ fig6A <- ggplot(clustexA, aes(x = Cluster, y = WSS, color = Method, group = Meth
   scale_color_manual(values = viridis(3, option = "D")[1:2]) +
   scale_x_continuous(breaks = 1:8) +
   ggtitle("A") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   theme_classic() +
   theme(plot.title = element_text(hjust = .5))
 print(fig6A) # if you want to view the plot alone
@@ -1102,7 +1106,7 @@ fig6B <- ggplot(clustexB, aes(x = Cluster, y = Sil, color = Method, group = Meth
   scale_color_manual(values = viridis(3, option = "D")[1:2]) +
   scale_x_continuous(breaks = 1:8) +
   ggtitle("B") +
-  guides(color = FALSE) +
+  guides(color = "none") +
   theme_classic() +
   theme(plot.title = element_text(hjust = .5))
 print(fig6B) # if you want to view the plot alone
@@ -1265,17 +1269,14 @@ bestsoln_totss <- which.min(clusteringshca$totss)
 tab <- tibble(as.vector(table(clusteringshca$df[[bestsoln_sil]]$Cluster))) %>%
   rename(Size = 1) %>%
   mutate(Cluster = 1:length(unique(clusteringshca$df[[bestsoln_sil]]$Cluster)),
-         Percent = round((Size / sum(Size)) * 100, digits = 1))
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                        Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                        Percent, "%)"))
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label2lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
@@ -1286,7 +1287,7 @@ ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Cluster) +
-  guides(fill = FALSE, color = FALSE) +
+  guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
@@ -1297,24 +1298,18 @@ dev.off()
 # ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], "\n(",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], "\n(",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], "\n(",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], "\n(",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/SF2_hca",ksel,"box2.png"), height = 2000, width = 3500, res = 600)
+png(paste0("Figures/SF2_hca",ksel,"box2.png"),
+      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
 ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Subscale) +
-  guides(fill = FALSE, color = FALSE) +
+  facet_wrap(~Subscale, ncol=ifelse(ksel>4, 1, NULL)) +
+  guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
@@ -1326,28 +1321,22 @@ dev.off()
 
 # Pull just the centers to plot a heat map
 hca.heat <- clusteringshca$centers[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], "\n(",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], "\n(",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], "\n(",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], "\n(",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = round(Value*100, digits = 1))
 
 # Create/Output the plot
-png(paste0("Figures/SF3_hca",ksel,"heat.png"), height = 1500, width = 2500, res = 600)
+png(paste0("Figures/SF3_hca",ksel,"heat.png"),
+    height = 1500, width = ifelse(ksel>4,3500,2500), res = 600)
 ggplot(hca.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   geom_tile() +
   geom_text(aes(color = Value > 30)) +
   xlab(NULL) + ylab("Subscale") +
   labs(fill = "Mean") +
-  scale_fill_viridis() +
+  scale_fill_viridis(direction=-1) +
   scale_x_discrete() +
-  scale_color_manual(values=c("white","black")) +
-  guides(color = FALSE) +
+  scale_color_manual(values=c("black","white")) +
+  guides(color = "none") +
   theme_classic() +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
@@ -1359,14 +1348,7 @@ dev.off()
 
 # Pull the data to plot a scatter plot
 hca.scat <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          SPR = SPR*100,
          MT = MT*100,
          CC = CC*100,
@@ -1374,14 +1356,7 @@ hca.scat <- clusteringshca$df[[bestsoln_sil]] %>%
 
 # Pull just the centers to plot a 2D-density plot
 hca.center <- clusteringshca$centers[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          SPR = SPR*100,
          MT = MT*100,
          CC = CC*100,
@@ -1396,7 +1371,7 @@ hca.spr.mt <- ggplot(hca.scat, aes(x = SPR, y = MT, color = Cluster)) +
   facet_wrap(~Cluster) + 
   scale_x_continuous(breaks=seq(0,100,by=25)) + 
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
-  guides(color = FALSE) +
+  guides(color = "none") +
   theme_classic()
 print(hca.spr.mt) # to view one plot by itself
 
@@ -1409,12 +1384,13 @@ hca.cc.ei <- ggplot(hca.scat, aes(x = CC, y = EI, color = Cluster)) +
   facet_wrap(~Cluster) + 
   scale_x_continuous(breaks=seq(0,100,by=25)) + 
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
+  guides(color = "none") +
   theme_classic()
 print(hca.cc.ei) # to view one plot by itself
 
 # Create/Output the two plots together
 png(paste0("Figures/SF4_hca",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
-ggarrange(hca.spr.mt, hca.cc.ei, widths = c(1,1.5))
+ggarrange(hca.spr.mt, hca.cc.ei, widths = c(1,1))
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -1425,14 +1401,7 @@ dev.off()
 
 # Pull required information from silhouette values
 hca.sil <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          Silhouette = clusteringshca$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
@@ -1611,27 +1580,24 @@ bestsoln_bwss <- which.max(clusteringskmn$bwss)  # optimal solution based on tot
 tab <- tibble(as.vector(table(clusteringskmn$df[[bestsoln_totss]]$Cluster))) %>%
   rename(Size = 1) %>%
   mutate(Cluster = 1:length(unique(clusteringskmn$df[[bestsoln_totss]]$Cluster)),
-         Percent = round((Size / sum(Size)) * 100, digits = 1))
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label2lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/F9_kmn",sel,"box.png"), height = 2000, width = 2500, res = 600)
+png(paste0("Figures/F9_kmn",ksel,"box.png"), height = 2000, width = 2500, res = 600)
 ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Cluster) +
-  guides(fill = FALSE, color = FALSE) +
+  guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
@@ -1642,24 +1608,18 @@ dev.off()
 # ...Supplemental Figure 6: Alternative Figure 9 (boxplot 2) --------------------------
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], "\n(",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], "\n(",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], "\n(",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], "\n(",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/SF6_kmn",ksel,"box2.png"), height = 2000, width = 3500, res = 600)
+png(paste0("Figures/SF6_kmn",ksel,"box2.png"),
+    height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
 ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Subscale) +
-  guides(fill = FALSE, color = FALSE) +
+  facet_wrap(~Subscale, ncol=ifelse(ksel>4, 1, NULL)) +
+  guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
@@ -1671,29 +1631,23 @@ dev.off()
 
 # Pull just the centers to plot a heat map
 kmn.heat <- clusteringskmn$centers[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], "\n(",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], "\n(",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], "\n(",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], "\n(",
-                                       tab$Percent[tab$Cluster == 4], "%)"))) %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = round(Value*100, digits = 1))
 
 # Create/Output the plot
-png(paste0("Figures/SF7_kmn",ksel,"heat.png"), height = 1500, width = 2500, res = 600)
+png(paste0("Figures/SF7_kmn",ksel,"heat.png"), 
+    height = 1500, width = ifelse(ksel>4, 3500, 2500), res = 600)
 
 ggplot(kmn.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   geom_tile() +
   geom_text(aes(color = Value > 30)) +
   xlab(NULL) + ylab("Subscale") +
   labs(fill = "Mean") +
-  scale_fill_viridis() +
+  scale_fill_viridis(direction=-1) +
   scale_x_discrete() +
-  scale_color_manual(values=c("white","black")) +
-  guides(color = FALSE) +
+  scale_color_manual(values=c("black","white")) +
+  guides(color = "none") +
   theme_classic() +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
@@ -1706,14 +1660,7 @@ dev.off()
 
 # Pull the data to plot a scatter plot
 kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          SPR = SPR*100,
          MT = MT*100,
          CC = CC*100,
@@ -1721,14 +1668,7 @@ kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
 
 # Pull just the centers to plot a 2D-density plot
 kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          SPR = SPR*100,
          MT = MT*100,
          CC = CC*100,
@@ -1743,7 +1683,7 @@ kmn.spr.mt <- ggplot(kmn.scat, aes(x = SPR, y = MT, color = Cluster)) +
   facet_wrap(~Cluster) + 
   scale_x_continuous(breaks=seq(0,100,by=25)) + 
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
-  guides(color = FALSE) +
+  guides(color = "none") +
   theme_classic()
 print(kmn.spr.mt) # to view one plot by itself
 
@@ -1756,12 +1696,13 @@ kmn.cc.ei <- ggplot(kmn.scat, aes(x = CC, y = EI, color = Cluster)) +
   facet_wrap(~Cluster) + 
   scale_x_continuous(breaks=seq(0,100,by=25)) + 
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
+  guides(color = "none") +
   theme_classic()
 print(kmn.cc.ei) # to view one plot by itself
 
 # Create/Output the two plots together
 png(paste0("Figures/SF8_kmn",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
-ggarrange(kmn.spr.mt, kmn.cc.ei, widths = c(1,1.5))
+ggarrange(kmn.spr.mt, kmn.cc.ei, widths = c(1,1))
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -1771,14 +1712,7 @@ dev.off()
 
 # Pull required information from silhouette values
 kmn.sil <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = recode(Cluster, `1` = paste0("Cluster 1\n N = ", tab$Size[tab$Cluster == 1], " (",
-                                                tab$Percent[tab$Cluster == 1], "%)"),
-                          `2` = paste0("Cluster 2\n N = ", tab$Size[tab$Cluster == 2], " (",
-                                       tab$Percent[tab$Cluster == 2], "%)"),
-                          `3` = paste0("Cluster 3\n N = ", tab$Size[tab$Cluster == 3], " (",
-                                       tab$Percent[tab$Cluster == 3], "%)"),
-                          `4` = paste0("Cluster 4\n N = ", tab$Size[tab$Cluster == 4], " (",
-                                       tab$Percent[tab$Cluster == 4], "%)")),
+  mutate(Cluster = tab$Label2lines[Cluster],
          Silhouette = clusteringskmn$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
@@ -1847,3 +1781,4 @@ ggplot(bootkmn.ari, aes(x = ARI)) +
   scale_x_continuous(limits=c(0,1))+
   theme_classic()
 dev.off()
+
