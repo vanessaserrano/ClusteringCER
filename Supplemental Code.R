@@ -1,4 +1,6 @@
 # README --------------------------------------------------------------
+# Search for "ksel <-" to change the number of clusters (around line 1164)
+
 
 # Libraries and Imports -----------------------------------------------
 # The following code downloads/installs (if not installed) and
@@ -219,13 +221,16 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, fill = cnt)) + # Make the plo
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                     name="Count",
-                    limits=c(1,500)) +
+                    limits=c(1,500),
+                    breaks=c(1,(1:5)*100)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
-leg <- spr.mt + theme(legend.position = "left",
+leg <- spr.mt + 
+  guides(fill = guide_colorbar(reverse=TRUE)) +
+  theme(legend.position = "left",
                       legend.text = element_text(size = 8),
                       legend.title = element_text(size = 9))
 leg <- get_legend(leg)
@@ -371,6 +376,7 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plo
                      limits = c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -539,9 +545,11 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT,
                      limits = c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,5)) +
   scale_color_viridis(name="Count",direction=-1,
                       guide="legend",
+                      breaks=c(1,(1:5)*100),
                       limits=c(1,500))+
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -1304,14 +1312,16 @@ hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
 
 png(paste0("Figures/SF2_hca",ksel,"box2.png"),
       height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
-ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
+g <- ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Subscale, ncol=ifelse(ksel>4, 1, NULL)) +
+  facet_wrap(~Subscale) +
   guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
+if(ksel>4) g <- g +facet_wrap(~Subscale, ncol= 1)
+g       
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -1614,14 +1624,16 @@ kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
 
 png(paste0("Figures/SF6_kmn",ksel,"box2.png"),
     height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
-ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
+g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
   scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Subscale, ncol=ifelse(ksel>4, 1, NULL)) +
+  facet_wrap(~Subscale) +
   guides(fill = "none", color = "none") +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
+if(ksel>4) g <- g + facet_wrap(~Subscale, ncol=1)
+g
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
