@@ -1,5 +1,5 @@
 # README --------------------------------------------------------------
-# Search for "ksel <-" to change the number of clusters (around line 1164)
+# Search for "ksel <-" to change the number of clusters (around line 1239)
 
 # This script runs in R - download R at https://www.r-project.org/. You can additionally
 # download RStudio for ease of viewing code and output: https://www.rstudio.com/products/rstudio/download/
@@ -1236,7 +1236,7 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 # First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
 # Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
 
-ksel <- 4                # 4 is the suggested number of clusters
+ksel <- 5                # 4 is the suggested number of clusters
 iterations <- 1000       # 1000 is the suggested number of iterations
 
 
@@ -1357,34 +1357,12 @@ tab <- tibble(as.vector(table(clusteringshca$df[[bestsoln_sil]]$Cluster))) %>%
                         Percent, "%)"))
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster]) %>%
-  pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
-  mutate(Value = Value*100)
-
-# Create/Output the plot
-png(paste0("Figures/F7_hca",ksel,"box.png"), height = 2000, width = 3500, res = 600)
-ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
-  geom_boxplot(position = position_dodge2(padding=.2)) +
-  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
-  scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Cluster) +
-  guides(fill = "none", color = "none") +
-  labs(x="Subscale", y="Avg Score (%)")+
-  theme_classic()
-dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
-
-
-# ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
-
-hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/SF2_hca",ksel,"box2.png"),
-      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+png(paste0("Figures/F7_hca",ksel,"box.png"),
+    height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
 g <- ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1397,8 +1375,32 @@ if(ksel>4) g <- g +facet_wrap(~Subscale, ncol= 1)
 g       
 dev.off()
 
+
 #### TODO: RETHINK VISUALIZATIONS ----
 
+
+# ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
+
+hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster]) %>%
+  pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
+  mutate(Value = Value*100)
+
+# Create/Output the plot
+png(paste0("Figures/SF2_hca",ksel,"box2.png"), 
+    height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
+  geom_boxplot(position = position_dodge2(padding=.2)) +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~Cluster, ncol = 2) +
+  guides(fill = "none", color = "none") +
+  labs(x="Subscale", y="Avg Score (%)")+
+  theme_classic()
+dev.off()
+
+
+#### TODO: RETHINK VISUALIZATIONS ----
 
 # ...Supplemental Figure 3: Alternative Figure 7 (heat map) ------------------
 
@@ -1673,33 +1675,13 @@ tab <- tibble(as.vector(table(clusteringskmn$df[[bestsoln_totss]]$Cluster))) %>%
          Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
                               Percent, "%)"))
 
-kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster]) %>%
-  pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
-  mutate(Value = Value*100)
-
-png(paste0("Figures/F9_kmn",ksel,"box.png"), height = 2000, width = 3500, res = 600)
-ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
-  geom_boxplot(position = position_dodge2(padding=.2)) +
-  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
-  scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Cluster) +
-  guides(fill = "none", color = "none") +
-  labs(x="Subscale", y="Avg Score (%)")+
-  theme_classic()
-dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
-
-
-# ...Supplemental Figure 6: Alternative Figure 9 (boxplot 2) --------------------------
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label3lines[Cluster]) %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/SF6_kmn",ksel,"box2.png"),
+png(paste0("Figures/F9_kmn",ksel,"box.png"),
     height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
 g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
@@ -1711,6 +1693,30 @@ g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Value
   theme_classic()
 if(ksel>4) g <- g + facet_wrap(~Subscale, ncol=1)
 g
+dev.off()
+
+
+#### TODO: RETHINK VISUALIZATIONS ----
+
+
+# ...Supplemental Figure 6: Alternative Figure 9 (boxplot 2) --------------------------
+
+
+kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster]) %>%
+  pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
+  mutate(Value = Value*100)
+
+png(paste0("Figures/SF6_kmn",ksel,"box2.png"),
+    height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
+  geom_boxplot(position = position_dodge2(padding=.2)) +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~Cluster, ncol = 2) +
+  guides(fill = "none", color = "none") +
+  labs(x="Subscale", y="Avg Score (%)")+
+  theme_classic()
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
