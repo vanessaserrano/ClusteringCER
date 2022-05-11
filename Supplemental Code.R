@@ -1,10 +1,16 @@
 # README --------------------------------------------------------------
 # Search for "ksel <-" to change the number of clusters (around line 1164)
 
+# This script runs in R - download R at https://www.r-project.org/. You can additionally
+# download RStudio for ease of viewing code and output: https://www.rstudio.com/products/rstudio/download/
+
+# The following code contains all relevant code to reproduce images and analyses as described
+# in the published paper. Questions about this code including how it works and how you can modify
+# it to suit your needs can be directed to jharshman@auburn.edu
 
 # Libraries and Imports -----------------------------------------------
 # The following code downloads/installs (if not installed) and
-# loads the required packages ti run the analysis 
+# loads the required packages to run the analysis 
 
 options(install.packages.check.source = "no")
 
@@ -33,12 +39,15 @@ ICI <- read.delim("ICI.tsv") # read in the ICI data
 # Manipulate data to calculate average of subscales instead of individual items
 ICI.s <- ICI %>%
   rowwise() %>%
-  summarize(SPR = mean(c(cQ01, cQ02, cQ06, cQ07, cQ10, cQ14, cQ18, cQ19)),
-            MT = mean(c(cQ05, cQ08, cQ12, cQ15)),
-            EI = mean(c(cQ03, cQ11, cQ16, cQ20)),
-            CC = mean(c(cQ04, cQ09, cQ13, cQ17))) %>%
-  select(SPR:CC)
-
+  summarize(
+    Factor1 = mean(c(
+      cQ01, cQ02, cQ06, cQ07, cQ10, cQ14, cQ18, cQ19
+    )),
+    Factor2 = mean(c(cQ05, cQ08, cQ12, cQ15)),
+    Factor3 = mean(c(cQ03, cQ11, cQ16, cQ20)),
+    Factor4 = mean(c(cQ04, cQ09, cQ13, cQ17))
+  ) %>%
+  select(Factor1:Factor4)
 
 # Create Figures folder
 dir.create("Figures", showWarnings = F)
@@ -108,25 +117,69 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
 
-# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
-# to add them all to the same canvas. 
+# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end
+# to add them all to the same canvas.
 
-# SPR v MT
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
-spr.mt <- ggplot(ICI.s, aes(x = SPR, y = MT)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+# Factor1 v Factor2
+dat$rcor <-
+  round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
+factor1.factor2 <-
+  ggplot(ICI.s, aes(x = Factor1, y = Factor2)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = .05,
+              width = .05) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.1, vjust=0,  
-          label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
-# SPR v EI
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
-spr.ei <- ggplot(ICI.s, aes(x = SPR, y = EI)) + # Make the plot
+# Factor1 v Factor3
+dat$rcor <-
+  round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+factor1.factor3 <-
+  ggplot(ICI.s, aes(x = Factor1, y = Factor3)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = .05,
+              width = .05) +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.1, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.25)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9))
+
+# Factor1 v Factor4
+dat$rcor <-
+  round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+factor1.factor4 <-
+  ggplot(ICI.s, aes(x = Factor1, y = Factor4)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = .05,
+              width = .05) +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.1, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
+                     limits = c(-0.1, 1.25)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9))
+
+# Factor2 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+factor2.factor3 <- ggplot(ICI.s, aes(x = Factor2, y = Factor3)) + # Make the plot
   geom_jitter(alpha = .03, height = .05, width = .05) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.1, vjust=0,  
@@ -137,9 +190,9 @@ spr.ei <- ggplot(ICI.s, aes(x = SPR, y = EI)) + # Make the plot
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
-# SPR v CC
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
-spr.cc <- ggplot(ICI.s, aes(x = SPR, y = CC)) + # Make the plot
+# Factor2 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+factor2.factor4 <- ggplot(ICI.s, aes(x = Factor2, y = Factor4)) + # Make the plot
   geom_jitter(alpha = .03, height = .05, width = .05) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.1, vjust=0,  
@@ -150,35 +203,9 @@ spr.cc <- ggplot(ICI.s, aes(x = SPR, y = CC)) + # Make the plot
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
-# MT v EI
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
-mt.ei <- ggplot(ICI.s, aes(x = MT, y = EI)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
-  annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
-           label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
-  theme_classic() +
-  theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
-
-# MT v CC
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
-mt.cc <- ggplot(ICI.s, aes(x = MT, y = CC)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
-  annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
-           label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
-  theme_classic() +
-  theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9))
-
-# CC v EI
-dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
-cc.ei <- ggplot(ICI.s, aes(x = CC, y = EI)) + # Make the plot
+# Factor3 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor4, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+factor3.factor4 <- ggplot(ICI.s, aes(x = Factor3, y = Factor4)) + # Make the plot
   geom_jitter(alpha = .03, height = .05, width = .05) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.1, vjust=0,  
@@ -190,9 +217,10 @@ cc.ei <- ggplot(ICI.s, aes(x = CC, y = EI)) + # Make the plot
         axis.title = element_text(size = 9))
 
 png("Figures/F3_DescriptiveTogetherJitter.png", height = 5200, width = 5000, res = 900)
-ggarrange(spr.mt, NULL, NULL,
-          spr.cc, mt.cc, NULL,
-          spr.ei, mt.ei, cc.ei)
+ggarrange(factor1.factor2, NULL, NULL,
+          factor1.factor3, factor2.factor3, NULL,
+          factor1.factor4, factor2.factor4, factor3.factor4)
+
 dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
@@ -206,12 +234,12 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 # To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
 # to add them all to the same canvas. 
 
-# SPR v MT
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
-  group_by(SPR, MT) %>% summarise(cnt = n())
+# Factor1 v Factor2
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
+  group_by(Factor1, Factor2) %>% summarise(cnt = n())
 
-spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, fill = cnt)) + # Make the plot
+factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -228,19 +256,19 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, fill = cnt)) + # Make the plo
         axis.title = element_text(size = 9),
         legend.position="none")
 
-leg <- spr.mt + 
+leg <- factor1.factor2 + 
   guides(fill = guide_colorbar(reverse=TRUE)) +
   theme(legend.position = "left",
                       legend.text = element_text(size = 8),
                       legend.title = element_text(size = 9))
 leg <- get_legend(leg)
 
-# SPR v EI
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
-  group_by(SPR, EI) %>% summarise(cnt = n())
+# Factor1 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
+  group_by(Factor1, Factor3) %>% summarise(cnt = n())
 
-spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, fill = cnt)) + # Make the plot
+factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -250,18 +278,19 @@ spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, fill = cnt)) + # Make the plo
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
-                     limits=c(1,500)) +
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# SPR v CC
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
-  group_by(SPR, CC) %>% summarise(cnt = n())
+# Factor1 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
+  group_by(Factor1, Factor4) %>% summarise(cnt = n())
 
-spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, fill = cnt)) + # Make the plot
+factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -271,18 +300,19 @@ spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, fill = cnt)) + # Make the plo
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
-                     limits=c(1,500)) +
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# MT v EI
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
-  group_by(MT, EI) %>% summarise(cnt = n())
+# Factor2 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
+  group_by(Factor2, Factor3) %>% summarise(cnt = n())
 
-mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, fill = cnt)) + # Make the plot
+factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -292,38 +322,19 @@ mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, fill = cnt)) + # Make the plot
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
-                     limits=c(1,500)) +
-  theme_classic() +
-  theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9),
-        legend.position="none")
-# MT v CC
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
-  group_by(MT, CC) %>% summarise(cnt = n())
-
-mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, fill = cnt)) + # Make the plot
-  geom_tile() +
-  annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
-           label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
-  scale_fill_viridis(discrete = FALSE, direction=-1,
-                     name="Count",
-                     limits=c(1,500)) +
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# CC v EI
-dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
-  group_by(CC, EI) %>% summarise(cnt = n())
+# Factor2 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
+  group_by(Factor2, Factor4) %>% summarise(cnt = n())
 
-cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, fill = cnt)) + # Make the plot
+factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -333,7 +344,30 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, fill = cnt)) + # Make the plot
                      limits = c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
-                     limits=c(1,500)) +
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+# Factor3 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
+  group_by(Factor3, Factor4) %>% summarise(cnt = n())
+
+factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)) + # Make the plot
+  geom_tile() +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
@@ -341,9 +375,9 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, fill = cnt)) + # Make the plot
 
 png("Figures/F3_DescriptiveTogetherHeatmap.png", 
     height = 5200, width = 6000, res = 900)
-ggarrange(spr.mt, NULL, NULL, 
-          spr.cc, mt.cc, NULL,
-          spr.ei, mt.ei, cc.ei,
+ggarrange(factor1.factor2, NULL, NULL,
+          factor1.factor3, factor2.factor3, NULL,
+          factor1.factor4, factor2.factor4, factor3.factor4,
           legend.grob=leg,
           legend="right")
 dev.off()
@@ -359,13 +393,13 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 # To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
 # to add them all to the same canvas. 
 
-# SPR v MT
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
-  group_by(SPR, MT) %>% summarise(cnt = n())
-MAXSPRMT <- max(ICI.s.count$cnt)
+# Factor1 v Factor2
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
+  group_by(Factor1, Factor2) %>% summarise(cnt = n())
+MAX12 <- max(ICI.s.count$cnt)
 
-spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plot
+factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -383,19 +417,19 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, size = cnt)) + # Make the plo
         axis.title = element_text(size = 9),
         legend.position="none")
 
-leg <- spr.mt + theme(legend.position = "left",
+leg <- factor1.factor2 + theme(legend.position = "left",
                       legend.text = element_text(size = 8),
                       legend.title = element_text(size = 9))
 leg <- get_legend(leg)
 
-# SPR v EI
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
-  group_by(SPR, EI) %>% summarise(cnt = n())
+# Factor1 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
+  group_by(Factor1, Factor3) %>% summarise(cnt = n())
 
-MAXSPREI <- max(ICI.s.count$cnt)
+MAX13 <- max(ICI.s.count$cnt)
 
-spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, size = cnt)) + # Make the plot
+factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -412,14 +446,13 @@ spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, size = cnt)) + # Make the plo
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# SPR v CC
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
-  group_by(SPR, CC) %>% summarise(cnt = n())
+# Factor1 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
+  group_by(Factor1, Factor4) %>% summarise(cnt = n())
+MAX14 <- max(ICI.s.count$cnt)
 
-MAXSPRCC <- max(ICI.s.count$cnt)
-
-spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, size = cnt)) + # Make the plot
+factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -436,37 +469,13 @@ spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, size = cnt)) + # Make the plo
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# MT v EI
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
-  group_by(MT, EI) %>% summarise(cnt = n())
+# Factor2 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
+  group_by(Factor2, Factor3) %>% summarise(cnt = n())
+MAX23 <- max(ICI.s.count$cnt)
 
-MAXSMTEI <- max(ICI.s.count$cnt)
-
-mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, size = cnt)) + # Make the plot
-  geom_point(alpha = .25) +
-  annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
-           label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
-  scale_size_continuous(name="Count",
-                        limits=c(1,500),
-                        range=c(0.5,4)) +
-  theme_classic() +
-  theme(axis.text = element_text(size = 8),
-        axis.title = element_text(size = 9),
-        legend.position="none")
-# MT v CC
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
-  group_by(MT, CC) %>% summarise(cnt = n())
-
-MAXMTCC <- max(ICI.s.count$cnt)
-
-mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, size = cnt)) + # Make the plot
+factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -483,14 +492,36 @@ mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, size = cnt)) + # Make the plot
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# CC v EI
-dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
-  group_by(CC, EI) %>% summarise(cnt = n())
+# Factor2 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
+  group_by(Factor2, Factor4) %>% summarise(cnt = n())
+MAX24 <- max(ICI.s.count$cnt)
 
-MAXCCEI <- max(ICI.s.count$cnt)
+factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, size = cnt)) + # Make the plot
+  geom_point(alpha = .25) +
+  annotate(geom="richtext", fill=NA, label.color=NA,
+           x = .5, y = 1.15, vjust=0,  
+           label = paste("<i>r</i> =", dat$rcor), size = 3) +
+  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.125))+
+  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
+                     limits = c(-0.125,1.25))+
+  scale_size_continuous(name="Count",
+                        limits=c(1,500),
+                        range=c(0.5,4)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
 
-cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, size = cnt)) + # Make the plot
+# Factor3 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
+  group_by(Factor3, Factor4) %>% summarise(cnt = n())
+MAX34 <- max(ICI.s.count$cnt)
+
+factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
            x = .5, y = 1.15, vjust=0,  
@@ -509,9 +540,9 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, size = cnt)) + # Make the plot
 
 png("Figures/F3_DescriptiveTogetherDots.png", 
     height = 5200, width = 6000, res = 900)
-ggarrange(spr.mt, NULL, NULL, 
-          spr.cc, mt.cc, NULL,
-          spr.ei, mt.ei, cc.ei,
+ggarrange(factor1.factor2, NULL, NULL,
+          factor1.factor3, factor2.factor3, NULL,
+          factor1.factor4, factor2.factor4, factor3.factor4,
           legend.grob=leg,
           legend="right")
 dev.off()
@@ -527,13 +558,13 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 # To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
 # to add them all to the same canvas. 
 
-# SPR v MT
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$MT), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, MT) %>% 
-  group_by(SPR, MT) %>% summarise(cnt = n())
-MAXSPRMT <- max(ICI.s.count$cnt)
+# Factor1 v Factor2
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
+  group_by(Factor1, Factor2) %>% summarise(cnt = n())
+MAX12 <- max(ICI.s.count$cnt)
 
-spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT, 
+factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -556,19 +587,19 @@ spr.mt <- ggplot(ICI.s.count, aes(x = SPR, y = MT,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-leg <- spr.mt + theme(legend.position = "left",
+leg <- factor1.factor2 + theme(legend.position = "left",
                       legend.text = element_text(size = 8),
                       legend.title = element_text(size = 9))
 leg <- get_legend(leg)
 
-# SPR v EI
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, EI) %>% 
-  group_by(SPR, EI) %>% summarise(cnt = n())
+# Factor1 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
+  group_by(Factor1, Factor3) %>% summarise(cnt = n())
 
-MAXSPREI <- max(ICI.s.count$cnt)
+MAX13 <- max(ICI.s.count$cnt)
 
-spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI, 
+factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -589,14 +620,14 @@ spr.ei <- ggplot(ICI.s.count, aes(x = SPR, y = EI,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# SPR v CC
-dat$rcor <- round(cor(ICI.s$SPR, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(SPR, CC) %>% 
-  group_by(SPR, CC) %>% summarise(cnt = n())
+# Factor1 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
+  group_by(Factor1, Factor4) %>% summarise(cnt = n())
 
-MAXSPRCC <- max(ICI.s.count$cnt)
+MAX14 <- max(ICI.s.count$cnt)
 
-spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC, 
+factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -617,14 +648,14 @@ spr.cc <- ggplot(ICI.s.count, aes(x = SPR, y = CC,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# MT v EI
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, EI) %>% 
-  group_by(MT, EI) %>% summarise(cnt = n())
+# Factor2 v Factor3
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
+  group_by(Factor2, Factor3) %>% summarise(cnt = n())
 
-MAXSMTEI <- max(ICI.s.count$cnt)
+MAX23 <- max(ICI.s.count$cnt)
 
-mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI, 
+factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -645,14 +676,14 @@ mt.ei <- ggplot(ICI.s.count, aes(x = MT, y = EI,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# MT v CC
-dat$rcor <- round(cor(ICI.s$MT, ICI.s$CC), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(MT, CC) %>% 
-  group_by(MT, CC) %>% summarise(cnt = n())
+# Factor2 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
+  group_by(Factor2, Factor4) %>% summarise(cnt = n())
 
-MAXMTCC <- max(ICI.s.count$cnt)
+MAX24 <- max(ICI.s.count$cnt)
 
-mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC, 
+factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -673,14 +704,14 @@ mt.cc <- ggplot(ICI.s.count, aes(x = MT, y = CC,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-# CC v EI
-dat$rcor <- round(cor(ICI.s$CC, ICI.s$EI), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(CC, EI) %>% 
-  group_by(CC, EI) %>% summarise(cnt = n())
+# Factor3 v Factor4
+dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
+  group_by(Factor3, Factor4) %>% summarise(cnt = n())
 
-MAXCCEI <- max(ICI.s.count$cnt)
+MAX34 <- max(ICI.s.count$cnt)
 
-cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI, 
+factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
@@ -703,9 +734,9 @@ cc.ei <- ggplot(ICI.s.count, aes(x = CC, y = EI,
 
 png("Figures/F3_DescriptiveTogetherCDots.png", 
     height = 5200, width = 6000, res = 900)
-ggarrange(spr.mt, NULL, NULL, 
-          spr.cc, mt.cc, NULL,
-          spr.ei, mt.ei, cc.ei,
+ggarrange(factor1.factor2, NULL, NULL,
+          factor1.factor3, factor2.factor3, NULL,
+          factor1.factor4, factor2.factor4, factor3.factor4,
           legend.grob=leg,
           legend="right")
 dev.off()
@@ -762,14 +793,52 @@ hca <- ICI.s %>%
 hca %>%
   group_by(Cluster) %>%
   summarise(Percent = n() / nrow(hca),
-            SPR.m = mean(SPR),
-            SPR.s = sd(SPR),
-            MT.m = mean(MT),
-            MT.s = sd(MT),
-            EI.m = mean(EI),
-            EI.s = sd(EI),
-            CC.m = mean(CC),
-            CC.s = sd(CC))
+            Factor1.m = mean(Factor1),
+            Factor1.s = sd(Factor1),
+            Factor2.m = mean(Factor2),
+            Factor2.s = sd(Factor2),
+            Factor3.m = mean(Factor3),
+            Factor3.s = sd(Factor3),
+            Factor4.m = mean(Factor4),
+            Factor4.s = sd(Factor4))
+
+
+# ...Figure 4(top) - Alternative: Boxplot from HCA Euclidean/Ward --------------------------
+
+# Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
+# increase mean of Factor2 variable
+hca <- ICI.s %>%
+  mutate(Cluster = sol)
+hca.s <- hca %>%
+  group_by(Cluster) %>%
+  summarize(n = n(),
+            Factor2.m = mean(Factor2)) %>%
+  mutate(n = round(n/nrow(ICI.s)*100, 1)) %>%
+  arrange(-Factor2.m)
+
+# Rename arbitrary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
+hca.r <- hca %>%
+  mutate(Cluster = recode(Cluster, `1` = hca.s$Cluster[1],
+                          `2` = hca.s$Cluster[2],
+                          `3` = hca.s$Cluster[3]))
+hca.l <- hca.r %>%
+  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", hca.s$n[match(hca$Cluster, hca.s$Cluster)], "%)")) %>%
+  gather("Scale", "Score", -Cluster)
+
+
+# Create/Output the plot
+png("Figures/F4original_hcaICIeucward_box.png", res = 600, height = 2000, width = 3500)
+ggplot(hca.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
+  geom_boxplot(position = position_dodge2(padding=.2)) +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~Scale) +
+  guides(fill = "none", color = "none") +
+  ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
+  labs(x="Scale", y="Score")+
+  theme_classic()
+dev.off()
+
 
 # ...Figure 4(A): Dendrogram for HCA Euclidean/Average --------------------------
 
@@ -911,15 +980,15 @@ ran.centers <- sample(1:nrow(ICI.s), 3)             # define random centers to s
 sol <- kmeans(ICI.s, centers = ICI.s[ran.centers,]) # run the k-means clustering using the random centers
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
-# increase mean of MT variable
+# increase mean of Factor2 variable
 kmn <- ICI.s %>%
   mutate(Cluster = as.character(sol$cluster)) 
 kmn.s <- kmn %>%
   group_by(Cluster) %>%
   summarize(n = n(),
-            MT.m = mean(MT)) %>%
+            Factor2.m = mean(Factor2)) %>%
   mutate(n = round(n/nrow(ICI.s)*100, 1)) %>%
-  arrange(-MT.m)
+  arrange(-Factor2.m)
 
 # Rename arbitrary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
 kmn.r <- kmn %>%
@@ -946,14 +1015,14 @@ dev.off()
 kmn.r %>%
   group_by(Cluster) %>%
   summarise(N = n(),
-            SPR.m = mean(SPR),
-            SPR.s = sd(SPR),
-            MT.m = mean(MT),
-            MT.s = sd(MT),
-            EI.m = mean(EI),
-            EI.s = sd(EI),
-            CC.m = mean(CC),
-            CC.s = sd(CC))
+            Factor1.m = mean(Factor1),
+            Factor1.s = sd(Factor1),
+            Factor2.m = mean(Factor2),
+            Factor2.s = sd(Factor2),
+            Factor3.m = mean(Factor3),
+            Factor3.s = sd(Factor3),
+            Factor4.m = mean(Factor4),
+            Factor4.s = sd(Factor4))
 
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -970,15 +1039,15 @@ sol <- kmeans(ICI.s, centers = ICI.s[ran.centers,]) # run the k-means clustering
 
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
-# increase mean of MT variable
+# increase mean of Factor2 variable
 kmn <- ICI.s %>%
   mutate(Cluster = as.character(sol$cluster)) 
 kmn.s <- kmn %>%
   group_by(Cluster) %>%
   summarize(n = n(),
-            MT.m = mean(MT)) %>%
+            Factor2.m = mean(Factor2)) %>%
   mutate(n = round(n/nrow(ICI.s)*100, 1)) %>%
-  arrange(-MT.m)
+  arrange(-Factor2.m)
 
 # Rename arbirary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
 kmn.r <- kmn %>%
@@ -1008,14 +1077,14 @@ dev.off()
 kmn.r %>%
   group_by(Cluster) %>%
   summarise(N = n(),
-            SPR.m = mean(SPR),
-            SPR.s = sd(SPR),
-            MT.m = mean(MT),
-            MT.s = sd(MT),
-            EI.m = mean(EI),
-            EI.s = sd(EI),
-            CC.m = mean(CC),
-            CC.s = sd(CC))
+            Factor1.m = mean(Factor1),
+            Factor1.s = sd(Factor1),
+            Factor2.m = mean(Factor2),
+            Factor2.s = sd(Factor2),
+            Factor3.m = mean(Factor3),
+            Factor3.s = sd(Factor3),
+            Factor4.m = mean(Factor4),
+            Factor4.s = sd(Factor4))
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
@@ -1023,10 +1092,10 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 # Example 6: Descriptive distribution across possible scores --------------
 
 # Generate a table of how many (percent) students chose each response possibility for each of the four variables
-round(table(ICI.s$SPR) / nrow(ICI.s) * 100, 1)
-round(table(ICI.s$MT) / nrow(ICI.s) * 100, 1)
-round(table(ICI.s$EI) / nrow(ICI.s) * 100, 1)
-round(table(ICI.s$CC) / nrow(ICI.s) * 100, 1)
+round(table(ICI.s$Factor1) / nrow(ICI.s) * 100, 1)
+round(table(ICI.s$Factor2) / nrow(ICI.s) * 100, 1)
+round(table(ICI.s$Factor3) / nrow(ICI.s) * 100, 1)
+round(table(ICI.s$Factor4) / nrow(ICI.s) * 100, 1)
 
 
 # Example 7: Determining appropriate number of clusters -------------------
@@ -1241,6 +1310,10 @@ if(CALC_REPS |
 # comment the line out:
 load(paste0("hca_",ksel,"_",iterations,"_reps.rda"))
 clusteringshca <- clusterings
+Names1 <- c("Factor1", "Factor2", "Factor3", "Factor4", "Cluster")
+clusteringshca$df <- lapply(clusteringshca$df, `names<-`, Names1)
+Names2 <- c("Cluster", "Factor1", "Factor2", "Factor3", "Factor4")
+clusteringshca$centers <- lapply(clusteringshca$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS",
@@ -1289,7 +1362,7 @@ hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Value = Value*100)
 
 # Create/Output the plot
-png(paste0("Figures/F7_hca",ksel,"box.png"), height = 2000, width = 2500, res = 600)
+png(paste0("Figures/F7_hca",ksel,"box.png"), height = 2000, width = 3500, res = 600)
 ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1359,21 +1432,21 @@ dev.off()
 # Pull the data to plot a scatter plot
 hca.scat <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Cluster = tab$Label2lines[Cluster],
-         SPR = SPR*100,
-         MT = MT*100,
-         CC = CC*100,
-         EI = EI*100)
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
 
 # Pull just the centers to plot a 2D-density plot
 hca.center <- clusteringshca$centers[[bestsoln_sil]] %>%
   mutate(Cluster = tab$Label2lines[Cluster],
-         SPR = SPR*100,
-         MT = MT*100,
-         CC = CC*100,
-         EI = EI*100)
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
 
 # Create/Output Plot #1
-hca.spr.mt <- ggplot(hca.scat, aes(x = SPR, y = MT, color = Cluster)) +
+hca.factor1.factor2 <- ggplot(hca.scat, aes(x = Factor1, y = Factor2, color = Cluster)) +
   geom_encircle() +
   geom_jitter(shape=21, alpha=.2)+
   geom_point(data=hca.center, size=5, shape="+") +
@@ -1383,10 +1456,10 @@ hca.spr.mt <- ggplot(hca.scat, aes(x = SPR, y = MT, color = Cluster)) +
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
   guides(color = "none") +
   theme_classic()
-print(hca.spr.mt) # to view one plot by itself
+print(hca.factor1.factor2) # to view one plot by itself
 
 # Create/Output Plot #2
-hca.cc.ei <- ggplot(hca.scat, aes(x = CC, y = EI, color = Cluster)) +
+hca.factor3.factor4 <- ggplot(hca.scat, aes(x = Factor3, y = Factor4, color = Cluster)) +
   geom_encircle() +
   geom_jitter(shape=21, alpha=.2)+
   geom_point(data=hca.center, size=5, shape="+") +
@@ -1396,11 +1469,11 @@ hca.cc.ei <- ggplot(hca.scat, aes(x = CC, y = EI, color = Cluster)) +
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
   guides(color = "none") +
   theme_classic()
-print(hca.cc.ei) # to view one plot by itself
+print(hca.factor3.factor4) # to view one plot by itself
 
 # Create/Output the two plots together
 png(paste0("Figures/SF4_hca",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
-ggarrange(hca.spr.mt, hca.cc.ei, widths = c(1,1))
+ggarrange(hca.factor1.factor2, hca.factor3.factor4, widths = c(1,1))
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
@@ -1555,6 +1628,10 @@ if(CALC_REPS  |
 # comment the line out:
 load(paste0("kmn_",ksel,"_",iterations,"_reps.rda"))
 clusteringskmn <- clusterings
+Names1 <- c("Factor1", "Factor2", "Factor3", "Factor4", "Cluster")
+clusteringskmn$df <- lapply(clusteringskmn$df, `names<-`, Names1)
+Names2 <- c("Cluster", "Factor1", "Factor2", "Factor3", "Factor4")
+clusteringskmn$centers <- lapply(clusteringskmn$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS",
@@ -1568,7 +1645,7 @@ length(unique(round(unlist(clusteringskmn$avgsil),6)))
 # Count unique by fingerprint each partition
 fingerprint <- as.data.frame(t(apply(clusteringskmn, 1, function(x) {
   c(as.numeric(table(x$df$Cluster)),
-    round(as.numeric(x$centers$SPR),3))
+    round(as.numeric(x$centers$Factor1),3))
 })))
 fingerprint <- as.data.frame(t(apply(fingerprint,1,sort)))
 fingerprint <- round(fingerprint,1)
@@ -1601,7 +1678,7 @@ kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   pivot_longer(-Cluster, names_to = "Subscale", values_to = "Value") %>%
   mutate(Value = Value*100)
 
-png(paste0("Figures/F9_kmn",ksel,"box.png"), height = 2000, width = 2500, res = 600)
+png(paste0("Figures/F9_kmn",ksel,"box.png"), height = 2000, width = 3500, res = 600)
 ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1673,21 +1750,21 @@ dev.off()
 # Pull the data to plot a scatter plot
 kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label2lines[Cluster],
-         SPR = SPR*100,
-         MT = MT*100,
-         CC = CC*100,
-         EI = EI*100)
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
 
 # Pull just the centers to plot a 2D-density plot
 kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label2lines[Cluster],
-         SPR = SPR*100,
-         MT = MT*100,
-         CC = CC*100,
-         EI = EI*100)
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
 
 # Create/Output Plot #1
-kmn.spr.mt <- ggplot(kmn.scat, aes(x = SPR, y = MT, color = Cluster)) +
+kmn.factor1.factor2 <- ggplot(kmn.scat, aes(x = Factor1, y = Factor2, color = Cluster)) +
   geom_encircle() +
   geom_jitter(shape=21, alpha=.2)+
   geom_point(data=kmn.center, size=5, shape="+") +
@@ -1697,10 +1774,10 @@ kmn.spr.mt <- ggplot(kmn.scat, aes(x = SPR, y = MT, color = Cluster)) +
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
   guides(color = "none") +
   theme_classic()
-print(kmn.spr.mt) # to view one plot by itself
+print(kmn.factor1.factor2) # to view one plot by itself
 
 # Create/Output Plot #2
-kmn.cc.ei <- ggplot(kmn.scat, aes(x = CC, y = EI, color = Cluster)) +
+kmn.factor3.factor4 <- ggplot(kmn.scat, aes(x = Factor3, y = Factor4, color = Cluster)) +
   geom_encircle() +
   geom_jitter(shape=21, alpha=.2)+
   geom_point(data=kmn.center, size=5, shape="+") +
@@ -1710,11 +1787,11 @@ kmn.cc.ei <- ggplot(kmn.scat, aes(x = CC, y = EI, color = Cluster)) +
   scale_y_continuous(breaks=seq(0,100,by=25)) + 
   guides(color = "none") +
   theme_classic()
-print(kmn.cc.ei) # to view one plot by itself
+print(kmn.factor3.factor4) # to view one plot by itself
 
 # Create/Output the two plots together
 png(paste0("Figures/SF8_kmn",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
-ggarrange(kmn.spr.mt, kmn.cc.ei, widths = c(1,1))
+ggarrange(kmn.factor1.factor2, kmn.factor3.factor4, widths = c(1,1))
 dev.off()
 
 #### TODO: RETHINK VISUALIZATIONS ----
