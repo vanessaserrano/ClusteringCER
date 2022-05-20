@@ -758,8 +758,7 @@ sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 #   plot(hc)
 
 # Create data that holds segments and labels: 
-dend <- as.dendrogram(hc) %>%
-  set("branches_k_color", k=3, value = c("black", "red", "green"))
+dend <- as.dendrogram(hc) 
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
@@ -854,8 +853,7 @@ sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 #   plot(hc)
 
 # Create data that holds segments and labels: 
-dend <- as.dendrogram(hc) %>%
-  set("branches_k_color", k=3, value = c("black", "red", "green"))
+dend <- as.dendrogram(hc) 
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
@@ -895,8 +893,7 @@ sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 #   plot(hc)
 
 # Create data that holds segments and labels: 
-dend <- as.dendrogram(hc) %>%
-  set("branches_k_color", k=3, value = c("black", "red", "green"))
+dend <- as.dendrogram(hc) 
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
@@ -938,8 +935,7 @@ sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 #   plot(hc)
 
 # Create data that holds segments and labels: 
-dend <- as.dendrogram(hc) %>%
-  set("branches_k_color", k=3, value = c("black", "red", "green"))
+dend <- as.dendrogram(hc) 
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
@@ -965,9 +961,6 @@ ggplot(dend.cust) +
         axis.title.x = element_blank(),
         plot.title = element_text(hjust = .5, vjust = .5))
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
-
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
@@ -1025,9 +1018,6 @@ kmn.r %>%
             Factor4.s = sd(Factor4))
 
 
-#### TODO: RETHINK VISUALIZATIONS ----
-
-
 # ...Supplemental Figure 1: k-means using Euclidean distance with different starting centers on ICI ------------------
 
 # The only difference between this code and the one to produce Figure 5 is changing the seed, which pulls a different
@@ -1070,9 +1060,6 @@ ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   labs(x="Scale", y="Score")+
   theme_classic()
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
-
 
 kmn.r %>%
   group_by(Cluster) %>%
@@ -1236,7 +1223,7 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 # First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
 # Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
 
-ksel <- 5                # 4 is the suggested number of clusters
+ksel <- 4                # 4 is the suggested number of clusters
 iterations <- 1000       # 1000 is the suggested number of iterations
 
 
@@ -1376,9 +1363,6 @@ g
 dev.off()
 
 
-#### TODO: RETHINK VISUALIZATIONS ----
-
-
 # ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
@@ -1398,9 +1382,6 @@ ggplot(hca.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
-
-
-#### TODO: RETHINK VISUALIZATIONS ----
 
 # ...Supplemental Figure 3: Alternative Figure 7 (heat map) ------------------
 
@@ -1426,8 +1407,6 @@ ggplot(hca.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
 
 # ...Supplemental Figure 4: Alternative Figure 7 (scatter plots) --------------------------
 
@@ -1478,8 +1457,54 @@ png(paste0("Figures/SF4_hca",ksel,"scat.png"), height = 2500, width = 4500, res 
 ggarrange(hca.factor1.factor2, hca.factor3.factor4, widths = c(1,1))
 dev.off()
 
-#### TODO: RETHINK VISUALIZATIONS ----
 
+# ...Supplemental Figure 4b: Alternative Figure 7 (dendro) --------------------------
+
+dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
+# hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
+# sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
+
+set.seed(bestsoln_sil)
+ranorder <- sample(1:nrow(ICI.s),nrow(ICI.s))
+df1 <- ICI.s[ranorder,]
+distData <- dist(df1, method="euclidean")
+hcbest <- agnes(distData, diss=T, method="ward")
+sol <- cutree(hcbest, ksel)
+
+# Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
+# simply use:
+#   plot(hcbest)
+
+# Create data that holds segments and labels: 
+dend <- as.dendrogram(hcbest) 
+dend_dat <- dendro_data(dend, type = "rectangle")
+
+# Set the color by the initial position of the segment (x)
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
+clusterSizes <- cumsum(clusterSizes)
+dend.cust <- dend_dat$segments %>%
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                          function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=factor(Cluster))
+
+# Create dendrogram and output plot:
+png(paste0("Figures/SF4b_hca",ksel,"dendro.png"), res = 600, height = 1000, width = 4000)
+ggplot(dend.cust) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend,
+                   color = Cluster)) +
+  theme_classic() +
+  guides(color = "none") +
+  ylab("height") +
+  scale_colour_viridis(discrete = TRUE) +
+  theme(axis.line.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        plot.title = element_text(hjust = .5, vjust = .5))
+dev.off()
 
 # Example 10: Silhouette Plot (hierarchical) ---------------------------------------------
 # ...Figure 8: Silhouette Plot --------------------------------------------
@@ -1655,7 +1680,7 @@ fingerprint <- apply(fingerprint, 1, paste, collapse=" ")
 length(unique(fingerprint))
 
 
-# ...Figure 9: Boxplot of KMN solution optimized to Total SS --------------
+# ...Figure 9: Boxplot of k-means solution optimized to Total SS --------------
 
 bestsoln_sil <- which.max(clusteringskmn$avgsil)  # optimal solution based on silhouette
 
@@ -1696,11 +1721,7 @@ g
 dev.off()
 
 
-#### TODO: RETHINK VISUALIZATIONS ----
-
-
 # ...Supplemental Figure 6: Alternative Figure 9 (boxplot 2) --------------------------
-
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label2lines[Cluster]) %>%
@@ -1718,8 +1739,6 @@ ggplot(kmn.box, aes(x = Subscale, fill = Cluster, color = Cluster, y = Value)) +
   labs(x="Subscale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
 
 
 # ...Supplemental Figure 7: Alternative Figure 9 (heat map) ------------------
@@ -1747,8 +1766,6 @@ ggplot(kmn.heat,aes(x = Cluster, y = Subscale, fill = Value, label = Value)) +
   theme(axis.line = element_blank(),
         axis.ticks = element_blank())
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
 
 
 # ...Supplemental Figure 8: Alternative Figure 9 (scatter plots) --------------------------
@@ -1799,8 +1816,6 @@ print(kmn.factor3.factor4) # to view one plot by itself
 png(paste0("Figures/SF8_kmn",ksel,"scat.png"), height = 2500, width = 4500, res = 600)
 ggarrange(kmn.factor1.factor2, kmn.factor3.factor4, widths = c(1,1))
 dev.off()
-
-#### TODO: RETHINK VISUALIZATIONS ----
 
 
 # ...Supplemental Figure 9: Silhouette Plot (k-means) --------------------------------------------
