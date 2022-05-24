@@ -753,6 +753,16 @@ hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
 sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 
 
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
+
 # Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
 # simply use:
 #   plot(hc)
@@ -762,26 +772,32 @@ dend <- as.dendrogram(hc)
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
-clusterSizes <- as.numeric(sort(table(sol),decreasing = T)[c(1,2,3)])
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
 clusterSizes <- cumsum(clusterSizes)
 dend.cust <- dend_dat$segments %>%
-  mutate(Cluster = 
-           ifelse(x<=clusterSizes[1],"1",ifelse(x<=clusterSizes[2],"2","3")))
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                                  function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4original_hcaICIeucward.png", res = 600, height = 1000, width = 4000)
+png("Figures/F4original_hcaICIeucward.png", res = 600,
+    height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (original order)") +
-  guides(color = "none") +
+  guides(color = guide_legend("")) +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5))
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
 dev.off()
 
 # To generate the means and standard deviations in the table, need a data set with cluster assignments in them:
@@ -816,17 +832,16 @@ hca.s <- hca %>%
   arrange(-Factor2.m)
 
 # Rename arbitrary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
-hca.r <- hca %>%
-  mutate(Cluster = recode(Cluster, `1` = hca.s$Cluster[1],
-                          `2` = hca.s$Cluster[2],
-                          `3` = hca.s$Cluster[3]))
-hca.l <- hca.r %>%
-  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", hca.s$n[match(hca$Cluster, hca.s$Cluster)], "%)")) %>%
-  gather("Scale", "Score", -Cluster)
+hca.r <- hca 
 
+hca.l <- hca.r %>%
+  mutate(Cluster=tab$Label3lines[Cluster]) %>% 
+  gather("Scale", "Score", -Cluster) %>% 
+  mutate(Score = Score*100)
 
 # Create/Output the plot
-png("Figures/F4original_hcaICIeucward_box.png", res = 600, height = 2000, width = 3500)
+png("Figures/F4original_hcaICIeucward_box.png", res = 600,
+    height = 2400, width = 3500)
 ggplot(hca.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -834,7 +849,7 @@ ggplot(hca.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Scale) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x="Scale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
 
@@ -848,6 +863,17 @@ dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
 hc <- hclust(dist.ICI, method = "average")    # run hca algorithm
 sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 
+
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
+
 # Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
 # simply use:
 #   plot(hc)
@@ -857,26 +883,32 @@ dend <- as.dendrogram(hc)
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
-clusterSizes <- as.numeric(sort(table(sol),decreasing = T)[c(2,3,1)])
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
 clusterSizes <- cumsum(clusterSizes)
 dend.cust <- dend_dat$segments %>%
-  mutate(Cluster =
-           ifelse(x<=clusterSizes[1],"1",ifelse(x<=clusterSizes[2],"2","3")))
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                                  function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4a_hcaICIeucavg.png", res = 600, height = 1000, width = 4000)
+png("Figures/F4a_hcaICIeucavg.png", res = 600,
+    height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and average linkage (original order)") +
-  guides(color = "none") +
+  guides(color = guide_legend("")) +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5))
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
 dev.off()
 
 # ...Figure 4(B): Dendrogram for HCA Manhattan/Ward --------------------------
@@ -888,6 +920,17 @@ dist.ICI <- dist(ICI.s, method = "manhattan") # compute distance matrix
 hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
 sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 
+
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
+
 # Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
 # simply use:
 #   plot(hc)
@@ -897,26 +940,32 @@ dend <- as.dendrogram(hc)
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
-clusterSizes <- as.numeric(sort(table(sol),decreasing = T)[c(1,3,2)])
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
 clusterSizes <- cumsum(clusterSizes)
 dend.cust <- dend_dat$segments %>%
-  mutate(Cluster =
-           ifelse(x<=clusterSizes[1],"1",ifelse(x<=clusterSizes[2],"2","3")))
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                                  function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4b_hcaICImanward.png", res = 600, height = 1000, width = 4000)
+png("Figures/F4b_hcaICImanward.png", res = 600,
+    height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Manhattan distance and Ward's linkage (original order)") +
-  guides(color = "none") +
+  guides(color = guide_legend("")) +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5))
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
 dev.off()
 
 # ...Figure 4(C): Dendrogram from HCA Euclidean/Ward Random Order --------------------------
@@ -930,6 +979,18 @@ dist.ICI <- dist(ICI.shuffle, method = "euclidean") # compute distance matrix
 hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
 sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
 
+
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
+
+
 # Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
 # simply use:
 #   plot(hc)
@@ -939,27 +1000,32 @@ dend <- as.dendrogram(hc)
 dend_dat <- dendro_data(dend, type = "rectangle")
 
 # Set the color by the initial position of the segment (x)
-clusterSizes <- as.numeric(sort(table(sol),decreasing = T)[c(1,3,2)])
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
 clusterSizes <- cumsum(clusterSizes)
 dend.cust <- dend_dat$segments %>%
-  mutate(Cluster =
-           ifelse(x<=clusterSizes[1],"1",ifelse(x<=clusterSizes[2],"2","3")))
-
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                                  function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4c_hcaICIeucward.png", res = 600, height = 1000, width = 4000)
+png("Figures/F4c_hcaICIeucward.png", res = 600,
+    height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (random order)") +
-  guides(color = "none") +
+  guides(color = guide_legend("")) +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5))
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
 dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
@@ -971,6 +1037,16 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 set.seed(1)                                         # set a random seed to recover original starting values
 ran.centers <- sample(1:nrow(ICI.s), 3)             # define random centers to start the algorithm
 sol <- kmeans(ICI.s, centers = ICI.s[ran.centers,]) # run the k-means clustering using the random centers
+
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol$cluster))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol$cluster)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -984,16 +1060,17 @@ kmn.s <- kmn %>%
   arrange(-Factor2.m)
 
 # Rename arbitrary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
-kmn.r <- kmn %>%
-  mutate(Cluster = recode(Cluster, `1` = kmn.s$Cluster[1],
-                          `2` = kmn.s$Cluster[2],
-                          `3` = kmn.s$Cluster[3]))
+kmn.r <- kmn
+
 kmn.l <- kmn.r %>%
-  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
-  gather("Scale", "Score", -Cluster)
+  mutate(Cluster=tab$Label3lines[as.numeric(Cluster)]) %>% 
+  gather("Scale", "Score", -Cluster) %>% 
+  mutate(Score = Score*100)
+
 
 # Create/Output the plot (Figure 5)
-png("Figures/F5_kmneucorig.png", res = 600, height = 2000, width = 3500)
+png("Figures/F5_kmneucorig.png", res = 600,
+    height = 2200, width = 3500)
 ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1001,7 +1078,7 @@ ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Scale) +
   guides(fill = "none", color = "none") +
   ggtitle("k-means with euclidean distance (random centers #1)") +
-  labs(x="Scale", y="Score")+
+  labs(x="Scale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
 
@@ -1027,6 +1104,15 @@ set.seed(45)                                         # set a random seed differe
 ran.centers <- sample(1:nrow(ICI.s), 3)             # define random centers to start the algorithm
 sol <- kmeans(ICI.s, centers = ICI.s[ran.centers,]) # run the k-means clustering using the random centers
 
+# Save a table of group sizes/percent for which to rename cluster groupings
+tab <- tibble(as.vector(table(sol$cluster))) %>%
+  rename(Size = 1) %>%
+  mutate(Cluster = 1:length(unique(sol$cluster)),
+         Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
+                              Percent, "%)"),
+         Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
+                              Percent, "%)"))
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -1040,16 +1126,17 @@ kmn.s <- kmn %>%
   arrange(-Factor2.m)
 
 # Rename arbirary Clusters 1, 2, and 3 to include their cluster sizes, then convert to long form for ggplot
-kmn.r <- kmn %>%
-  mutate(Cluster = recode(Cluster, `1` = kmn.s$Cluster[1],
-                          `2` = kmn.s$Cluster[2],
-                          `3` = kmn.s$Cluster[3]))
+kmn.r <- kmn
+
 kmn.l <- kmn.r %>%
-  mutate(Cluster = paste0("Cluster ", Cluster, "\n(", kmn.s$n[match(kmn$Cluster, kmn.s$Cluster)], "%)")) %>%
-  gather("Scale", "Score", -Cluster)
+  mutate(Cluster=tab$Label3lines[as.numeric(Cluster)]) %>% 
+  gather("Scale", "Score", -Cluster) %>% 
+  mutate(Score = Score*100)
+
 
 # Create/Output the plot (Figure 5)
-png("Figures/SF1_kmneucdiffcenters.png", res = 600, height = 2000, width = 3500)
+png("Figures/SF1_kmneucdiffcenters.png", res = 600,
+    height = 2200, width = 3500)
 ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(position = position_dodge2(padding=.2)) +
   scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
@@ -1057,7 +1144,7 @@ ggplot(kmn.l, aes(x = Cluster, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Scale) +
   guides(fill = "none", color = "none") +
   ggtitle("k-means with euclidean distance (random centers #2)") +
-  labs(x="Scale", y="Score")+
+  labs(x="Scale", y="Avg Score (%)")+
   theme_classic()
 dev.off()
 
@@ -1488,22 +1575,24 @@ clusterSizes <- cumsum(clusterSizes)
 dend.cust <- dend_dat$segments %>%
   mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
                           function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
-  mutate(Cluster=factor(Cluster))
+  mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png(paste0("Figures/SF4b_hca",ksel,"dendro.png"), res = 600, height = 1000, width = 4000)
+png(paste0("Figures/SF4b_hca",ksel,"dendro.png"), res = 600,
+    height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend,
                    color = Cluster)) +
   theme_classic() +
-  guides(color = "none") +
+  guides(color=guide_legend("")) +
   ylab("height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5))
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
 dev.off()
 
 # Example 10: Silhouette Plot (hierarchical) ---------------------------------------------
