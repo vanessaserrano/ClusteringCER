@@ -1,5 +1,5 @@
 # README --------------------------------------------------------------
-# Search for "ksel <-" to change the number of clusters (around line 1239)
+# Search for "ksel <-" to change the number of clusters (around line 1313)
 
 # This script runs in R - download R at https://www.r-project.org/. You can additionally
 # download RStudio for ease of viewing code and output: https://www.rstudio.com/products/rstudio/download/
