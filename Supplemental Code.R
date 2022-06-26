@@ -52,6 +52,10 @@ ICI.s <- ICI %>%
 # Create Figures folder
 dir.create("Figures", showWarnings = F)
 
+prevFigures <- dir(path="Figures", pattern=".*[.]png",)
+if(length(prevFigures)>0) prevFigures <- paste0("Figures/",prevFigures)
+file.remove(prevFigures)
+
 # Set if repetitions should be calculated even when available.
 # If set to TRUE, execution may take some hours
 # If FALSE, 'hca_#CLUSTERS_#REPS_reps.rda', 'hca_#CLUSTERS_#REPS_boot.rda', 
@@ -109,32 +113,37 @@ adjustedRandIndex(df1$Cluster, df3$Cluster)
 adjustedRandIndex(df2$Cluster, df3$Cluster)
 
 
-# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 # Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (JITTER) -------
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
-
 # To create one ggplot with multiple plots, make each on individually and then use ggarrange at end
 # to add them all to the same canvas.
+
+ICI.s100 <- ICI.s %>% 
+  mutate(Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
 
 # Factor1 v Factor2
 dat$rcor <-
   round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
 factor1.factor2 <-
-  ggplot(ICI.s, aes(x = Factor1, y = Factor2)) + # Make the plot
+  ggplot(ICI.s100, aes(x = Factor1, y = Factor2)) + # Make the plot
   geom_jitter(alpha = .03,
-              height = .05,
-              width = .05) +
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.1)) +
-  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.25)) +
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
@@ -143,17 +152,17 @@ factor1.factor2 <-
 dat$rcor <-
   round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 factor1.factor3 <-
-  ggplot(ICI.s, aes(x = Factor1, y = Factor3)) + # Make the plot
+  ggplot(ICI.s100, aes(x = Factor1, y = Factor3)) + # Make the plot
   geom_jitter(alpha = .03,
-              height = .05,
-              width = .05) +
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.1)) +
-  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.25)) +
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
@@ -162,61 +171,77 @@ factor1.factor3 <-
 dat$rcor <-
   round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 factor1.factor4 <-
-  ggplot(ICI.s, aes(x = Factor1, y = Factor4)) + # Make the plot
+  ggplot(ICI.s100, aes(x = Factor1, y = Factor4)) + # Make the plot
   geom_jitter(alpha = .03,
-              height = .05,
-              width = .05) +
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.1)) +
-  scale_y_continuous(breaks = seq(0, 1, length.out = 5),
-                     limits = c(-0.1, 1.25)) +
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
 # Factor2 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
-factor2.factor3 <- ggplot(ICI.s, aes(x = Factor2, y = Factor3)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+factor2.factor3 <- 
+  ggplot(ICI.s100, aes(x = Factor2, y = Factor3)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
 # Factor2 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
-factor2.factor4 <- ggplot(ICI.s, aes(x = Factor2, y = Factor4)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+factor2.factor4 <- 
+  ggplot(ICI.s100, aes(x = Factor2, y = Factor4)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
 # Factor3 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor4, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
-factor3.factor4 <- ggplot(ICI.s, aes(x = Factor3, y = Factor4)) + # Make the plot
-  geom_jitter(alpha = .03, height = .05, width = .05) +
+factor3.factor4 <- 
+  ggplot(ICI.s100, aes(x = Factor3, y = Factor4)) + # Make the plot
+  geom_jitter(alpha = .03,
+              height = 5,
+              width = 5) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.1, vjust=0,  
+           x = 50, y = 110, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.1))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), limits = c(-0.1,1.25))+
+  scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.1)) +
+  scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                     limits = 100 * c(-0.1, 1.25)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
-png("Figures/F3_DescriptiveTogetherJitter.png", height = 5200, width = 5000, res = 900)
+png("Figures/XF1_DescriptiveTogetherJitter.png", height = 5200,
+    width = 6000, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
           factor1.factor4, factor2.factor4, factor3.factor4)
@@ -237,16 +262,20 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 # Factor1 v Factor2
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
-  group_by(Factor1, Factor2) %>% summarise(cnt = n())
+  group_by(Factor1, Factor2) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor2 = Factor2 * 100)
 
-factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, fill = cnt)) + # Make the plot
+factor1.factor2 <- 
+  ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                     name="Count",
                     limits=c(1,500),
@@ -266,16 +295,20 @@ leg <- get_legend(leg)
 # Factor1 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
-  group_by(Factor1, Factor3) %>% summarise(cnt = n())
+  group_by(Factor1, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor3 = Factor3 * 100)
 
-factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, fill = cnt)) + # Make the plot
+factor1.factor3 <- 
+  ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
                      limits=c(1,500),
@@ -288,16 +321,20 @@ factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, fill = cnt)
 # Factor1 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
-  group_by(Factor1, Factor4) %>% summarise(cnt = n())
+  group_by(Factor1, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor4 = Factor4 * 100)
 
-factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, fill = cnt)) + # Make the plot
+factor1.factor4 <- 
+  ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
                      limits=c(1,500),
@@ -310,16 +347,20 @@ factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, fill = cnt)
 # Factor2 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
-  group_by(Factor2, Factor3) %>% summarise(cnt = n())
+  group_by(Factor2, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor3 = Factor3 * 100)
 
-factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, fill = cnt)) + # Make the plot
+factor2.factor3 <- 
+  ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
                      limits=c(1,500),
@@ -332,16 +373,20 @@ factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, fill = cnt)
 # Factor2 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
-  group_by(Factor2, Factor4) %>% summarise(cnt = n())
+  group_by(Factor2, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor4 = Factor4 * 100)
 
-factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, fill = cnt)) + # Make the plot
+factor2.factor4 <- 
+  ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
                      limits=c(1,500),
@@ -354,16 +399,20 @@ factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, fill = cnt)
 # Factor3 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
-  group_by(Factor3, Factor4) %>% summarise(cnt = n())
+  group_by(Factor3, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor3 = Factor3 * 100,
+         Factor4 = Factor4 * 100)
 
-factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)) + # Make the plot
+factor3.factor4 <- 
+  ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)) + # Make the plot
   geom_tile() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_fill_viridis(discrete = FALSE, direction=-1,
                      name="Count",
                      limits=c(1,500),
@@ -374,7 +423,7 @@ factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)
         legend.position="none")
 
 png("Figures/F3_DescriptiveTogetherHeatmap.png", 
-    height = 5200, width = 6000, res = 900)
+    height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
           factor1.factor4, factor2.factor4, factor3.factor4,
@@ -395,19 +444,22 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 
 # Factor1 v Factor2
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
+
 ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
-  group_by(Factor1, Factor2) %>% summarise(cnt = n())
-MAX12 <- max(ICI.s.count$cnt)
+  group_by(Factor1, Factor2) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor2 = Factor2 * 100)
 
 factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         breaks=c(1,(1:5)*100),
@@ -424,22 +476,25 @@ leg <- get_legend(leg)
 
 # Factor1 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
-ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
-  group_by(Factor1, Factor3) %>% summarise(cnt = n())
 
-MAX13 <- max(ICI.s.count$cnt)
+ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
+  group_by(Factor1, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor3 = Factor3 * 100)
 
 factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -448,21 +503,25 @@ factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, size = cnt)
 
 # Factor1 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
+
 ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
-  group_by(Factor1, Factor4) %>% summarise(cnt = n())
-MAX14 <- max(ICI.s.count$cnt)
+  group_by(Factor1, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor4 = Factor4 * 100)
 
 factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -472,20 +531,23 @@ factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, size = cnt)
 # Factor2 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
-  group_by(Factor2, Factor3) %>% summarise(cnt = n())
-MAX23 <- max(ICI.s.count$cnt)
+  group_by(Factor2, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor3 = Factor3 * 100)
 
 factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -495,20 +557,23 @@ factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, size = cnt)
 # Factor2 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
-  group_by(Factor2, Factor4) %>% summarise(cnt = n())
-MAX24 <- max(ICI.s.count$cnt)
+  group_by(Factor2, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor4 = Factor4 * 100)
 
 factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -518,28 +583,31 @@ factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, size = cnt)
 # Factor3 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
-  group_by(Factor3, Factor4) %>% summarise(cnt = n())
-MAX34 <- max(ICI.s.count$cnt)
+  group_by(Factor3, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor3 = Factor3 * 100,
+         Factor4 = Factor4 * 100)
 
 factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, size = cnt)) + # Make the plot
   geom_point(alpha = .25) +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks=100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
+                        breaks=c(1,(1:5)*100),
                         range=c(0.5,4)) +
   theme_classic() +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9),
         legend.position="none")
 
-png("Figures/F3_DescriptiveTogetherDots.png", 
-    height = 5200, width = 6000, res = 900)
+png("Figures/XF2_DescriptiveTogetherDots.png", 
+    height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
           factor1.factor4, factor2.factor4, factor3.factor4,
@@ -547,7 +615,7 @@ ggarrange(factor1.factor2, NULL, NULL,
           legend="right")
 dev.off()
 
-# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
@@ -561,26 +629,26 @@ dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information a
 # Factor1 v Factor2
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor2), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
-  group_by(Factor1, Factor2) %>% summarise(cnt = n())
-MAX12 <- max(ICI.s.count$cnt)
+  group_by(Factor1, Factor2) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor2 = Factor2 * 100)
 
 factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
-                        breaks=c(1,(1:5)*100),
                         range=c(0.5,5)) +
   scale_color_viridis(name="Count",direction=-1,
                       guide="legend",
-                      breaks=c(1,(1:5)*100),
                       limits=c(1,500))+
   theme_classic() +
   theme(axis.text = element_text(size = 8),
@@ -595,20 +663,21 @@ leg <- get_legend(leg)
 # Factor1 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor3) %>% 
-  group_by(Factor1, Factor3) %>% summarise(cnt = n())
-
-MAX13 <- max(ICI.s.count$cnt)
+  group_by(Factor1, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor3 = Factor3 * 100)
 
 factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         range=c(0.5,5)) +
@@ -623,20 +692,21 @@ factor1.factor3 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor3,
 # Factor1 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor1, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor1, Factor4) %>% 
-  group_by(Factor1, Factor4) %>% summarise(cnt = n())
-
-MAX14 <- max(ICI.s.count$cnt)
+  group_by(Factor1, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor4 = Factor4 * 100)
 
 factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4, 
                                   size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         range=c(0.5,5)) +
@@ -651,20 +721,21 @@ factor1.factor4 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor4,
 # Factor2 v Factor3
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor3), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor3) %>% 
-  group_by(Factor2, Factor3) %>% summarise(cnt = n())
-
-MAX23 <- max(ICI.s.count$cnt)
+  group_by(Factor2, Factor3) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor3 = Factor3 * 100)
 
 factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         range=c(0.5,5)) +
@@ -679,20 +750,21 @@ factor2.factor3 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor3,
 # Factor2 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor2, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor2, Factor4) %>% 
-  group_by(Factor2, Factor4) %>% summarise(cnt = n())
-
-MAX24 <- max(ICI.s.count$cnt)
+  group_by(Factor2, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor2 = Factor2 * 100,
+         Factor4 = Factor4 * 100)
 
 factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         range=c(0.5,5)) +
@@ -707,20 +779,21 @@ factor2.factor4 <- ggplot(ICI.s.count, aes(x = Factor2, y = Factor4,
 # Factor3 v Factor4
 dat$rcor <- round(cor(ICI.s$Factor3, ICI.s$Factor4), 3) # Pearson correlation for indicated variables
 ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
-  group_by(Factor3, Factor4) %>% summarise(cnt = n())
-
-MAX34 <- max(ICI.s.count$cnt)
+  group_by(Factor3, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor3 = Factor3 * 100,
+         Factor4 = Factor4 * 100)
 
 factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, 
                                  size = cnt, color = cnt)) + # Make the plot
   geom_point() +
   annotate(geom="richtext", fill=NA, label.color=NA,
-           x = .5, y = 1.15, vjust=0,  
+           x = 50, y = 115, vjust=0,  
            label = paste("<i>r</i> =", dat$rcor), size = 3) +
-  scale_x_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.125))+
-  scale_y_continuous(breaks=seq(0,1,length.out = 5), 
-                     limits = c(-0.125,1.25))+
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.125))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5), 
+                     limits = 100 * c(-0.125,1.25))+
   scale_size_continuous(name="Count",
                         limits=c(1,500),
                         range=c(0.5,5)) +
@@ -732,8 +805,8 @@ factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-png("Figures/F3_DescriptiveTogetherCDots.png", 
-    height = 5200, width = 6000, res = 900)
+png("Figures/XF3_DescriptiveTogetherCDots.png", 
+    height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
           factor1.factor4, factor2.factor4, factor3.factor4,
@@ -741,7 +814,141 @@ ggarrange(factor1.factor2, NULL, NULL,
           legend="right")
 dev.off()
 
-# Delete unnecessary objects for next code (to prevent envrionment from being bogged down or overcrowded):
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
+
+# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (BOX PLOTS) -------
+
+data.box <- ICI.s %>%
+  pivot_longer(1:4,names_to = "Subscale", values_to = "Value") %>%
+  mutate(Value = Value*100)
+
+# Create/Output the plot
+png("Figures/XF4_DescriptiveTogetherBoxPlots.png", 
+    height = 2000, width = 2000, res = 600)
+ggplot(data.box, aes(x = Subscale, y = Value)) +
+  geom_boxplot(fill="grey") +
+  guides(fill = "none", color = "none") +
+  labs(x="Subscale", y="Score")+
+  theme_classic()
+dev.off()
+
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
+
+
+# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (SIMPLIFIED SCATTER PLOTS) -------
+
+# Pull the data to plot a scatter plot
+data.scat <- ICI.s %>%
+  mutate(Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Pull just the centers to plot a 2D-density plot
+data.center <- ICI.s %>%
+  summarise(Factor1 = mean(Factor1),
+            Factor2 = mean(Factor2),
+            Factor3 = mean(Factor3),
+            Factor4 = mean(Factor4)) %>% 
+  mutate(Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Create/Output Plot #1
+factor1.factor2 <- ggplot(data.scat, aes(x = Factor1, y = Factor2)) +
+  geom_encircle() +
+  geom_jitter(shape=21, alpha=.2)+
+  geom_point(data=data.center, size=5, shape="+") +
+  scale_x_continuous(breaks=seq(0,100,by=25)) + 
+  scale_y_continuous(breaks=seq(0,100,by=25)) + 
+  theme_classic()
+print(factor1.factor2) # to view one plot by itself
+
+# Create/Output Plot #2
+factor3.factor4 <- ggplot(data.scat, aes(x = Factor3, y = Factor4)) +
+  geom_encircle() +
+  geom_jitter(shape=21, alpha=.2)+
+  geom_point(data=data.center, size=5, shape="+") +
+  scale_x_continuous(breaks=seq(0,100,by=25)) + 
+  scale_y_continuous(breaks=seq(0,100,by=25)) + 
+  theme_classic()
+print(factor3.factor4) # to view one plot by itself
+
+# Create/Output the two plots together
+png(paste0("Figures/XF5_DescriptiveTogetherSimpleScatter.png"), height = 2500, width = 4500,
+    res = 600)
+ggarrange(factor1.factor2, factor3.factor4,
+          widths = c(1,1), ncol=2)
+dev.off()
+
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
+
+# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (SIMPLIFIED HEATMAPS) -------
+ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
+  group_by(Factor1, Factor2) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor1 = Factor1 * 100,
+         Factor2 = Factor2 * 100)
+
+factor1.factor2 <- ggplot(ICI.s.count, aes(x = Factor1, y = Factor2, fill = cnt)) + # Make the plot
+  geom_tile() +
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5))+
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+leg <- factor1.factor2 + 
+  guides(fill = guide_colorbar(reverse=TRUE)) +
+  theme(legend.position = "left",
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 9))
+leg <- get_legend(leg)
+
+# Factor3 v Factor4
+ICI.s.count <- ICI.s %>% select(Factor3, Factor4) %>% 
+  group_by(Factor3, Factor4) %>%
+  summarise(cnt = n(), .groups="drop") %>% 
+  mutate(Factor3 = Factor3 * 100,
+         Factor4 = Factor4 * 100)
+
+factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)) + # Make the plot
+  geom_tile() +
+  scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5))+
+  scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5))+
+  scale_fill_viridis(discrete = FALSE, direction=-1,
+                     name="Count",
+                     limits=c(1,500),
+                     breaks=c(1,(1:5)*100)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.position="none")
+
+
+# Create/Output the two plots together
+png(paste0("Figures/XF6_DescriptiveTogetherSimpleHeatmap.png"),
+    height = 2500, width = 5000,
+    res = 600)
+ggarrange(factor1.factor2, factor3.factor4,
+          widths = c(1,1), ncol=2,
+          legend.grob=leg,
+          legend="right")
+dev.off()
+
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
@@ -1310,7 +1517,7 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 # First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
 # Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
 
-ksel <- 4                # 4 is the suggested number of clusters
+ksel <- 6                # 6 is the suggested number of clusters
 iterations <- 1000       # 1000 is the suggested number of iterations
 
 
