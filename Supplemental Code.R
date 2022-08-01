@@ -1,6 +1,4 @@
-# README --------------------------------------------------------------
-# Search for "ksel <-" to change the number of clusters (around line 1313)
-
+#### README --------------------------------------------------------------
 # This script runs in R - download R at https://www.r-project.org/. You can additionally
 # download RStudio for ease of viewing code and output: https://www.rstudio.com/products/rstudio/download/
 
@@ -8,7 +6,7 @@
 # in the published paper. Questions about this code including how it works and how you can modify
 # it to suit your needs can be directed to jharshman@auburn.edu
 
-# Libraries and Imports -----------------------------------------------
+#### LIBRARIES AND IMPORTS -----------------------------------------------
 # The following code downloads/installs (if not installed) and
 # loads the required packages to run the analysis 
 
@@ -28,26 +26,13 @@ for(pckg in pckgs2Install) {
                    quiet=TRUE, type="binary")}
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
 
+
+
+
+#### SETTINGS -----------------------------------------------
 # Next, you will need to set the directory (folder) where the relevant data files live.
 # You can do this by setting the path to where your files live with the setwd() function:
 #   setwd("path_to_folder")
-
-# Import the ICI data, from the 'ICI.tsv' which should be in the
-# working directory
-ICI <- read.delim("ICI.tsv") # read in the ICI data
-
-# Manipulate data to calculate average of subscales instead of individual items
-ICI.s <- ICI %>%
-  rowwise() %>%
-  summarize(
-    Factor1 = mean(c(
-      cQ01, cQ02, cQ06, cQ07, cQ10, cQ14, cQ18, cQ19
-    )),
-    Factor2 = mean(c(cQ05, cQ08, cQ12, cQ15)),
-    Factor3 = mean(c(cQ03, cQ11, cQ16, cQ20)),
-    Factor4 = mean(c(cQ04, cQ09, cQ13, cQ17))
-  ) %>%
-  select(Factor1:Factor4)
 
 # Create Figures folder
 dir.create("Figures", showWarnings = F)
@@ -66,8 +51,7 @@ file.remove(prevFigures)
 CALC_REPS <- FALSE
 
 
-# Example 1 (Figure 1): Hypothetical Data for 3 Students ---------------------------------
-
+#### EXAMPLE 1: Hypothetical Data for 3 Students ---------------------------------
 # Create the data set with the patterns desired:
 fig1 <- tibble(Test = rep(c("Test 1", "Test 2", "Test 3", "Test 4"), each = 3),
                Student = rep(c("Student A", "Student B", "Student C"), 4),
@@ -84,11 +68,10 @@ ggplot(fig1, aes(x = Test, y = Correct, color = Student, group = Student)) +
 dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
-rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+rm(list=setdiff(ls(), c("CALC_REPS")))
 
 
-# Example 2 (Figure 2): Calculate ARI for Hypothetical Data Sets ----------------------
-
+#### EXAMPLE 2: Calculate ARI for Hypothetical Data Sets ----------------------
 # Create three data sets with designed number of clusters
 df1 <- data.frame(Obs = 1:3,
                   Cluster = c(1,1,2)) # rand.index function takes numbers, not letters, so A = 1 and B = 2
@@ -113,11 +96,33 @@ adjustedRandIndex(df1$Cluster, df3$Cluster)
 # df2 v df3
 adjustedRandIndex(df2$Cluster, df3$Cluster)
 
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("CALC_REPS")))
+
+
+#### DATA IMPORT -----------------------------------------------
+# Import the ICI data, from the 'ICI.tsv' which should be in the
+# working directory
+ICI <- read.delim("ICI.tsv") # read in the ICI data
+
+# Manipulate data to calculate average of subscales instead of individual items
+ICI.s <- ICI %>%
+  rowwise() %>%
+  summarize(
+    Factor1 = mean(c(
+      cQ01, cQ02, cQ06, cQ07, cQ10, cQ14, cQ18, cQ19
+    )),
+    Factor2 = mean(c(cQ05, cQ08, cQ12, cQ15)),
+    Factor3 = mean(c(cQ03, cQ11, cQ16, cQ20)),
+    Factor4 = mean(c(cQ04, cQ09, cQ13, cQ17))
+  ) %>%
+  select(Factor1:Factor4)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (JITTER) -------
+#### EXAMPLE 3: Descriptive view of ICI ------------------------------------
+### Descriptive view of 4 ICI Subscales - jitter -------
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
@@ -253,7 +258,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (HEATMAP) -------
+### Descriptive view of 4 ICI Subscales - heatmap -------
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
@@ -436,7 +441,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (DOTS) -------
+### Descriptive view of 4 ICI Subscales - dots -------
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
@@ -620,7 +625,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (COLORED DOTS) -------
+### Descriptive view of 4 ICI Subscales - colored dots -------
 
 dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
 
@@ -819,7 +824,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (BOX PLOTS) -------
+### Descriptive view of 4 ICI Subscales - box plots -------
 
 data.box <- ICI.s %>%
   pivot_longer(1:4,names_to = "Subscale", values_to = "Value") %>%
@@ -840,7 +845,7 @@ ggplot(data.box, aes(x = Subscale, y = Value)) +
   geom_jitter(data = data.out, shape=21, fill="grey", alpha=0.5,
               height=0, width=0.2, color="black")+
   guides(fill = "none", color = "none") +
-  labs(x="Subscale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -848,7 +853,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (SIMPLIFIED SCATTER PLOTS) -------
+### Descriptive view of 4 ICI Subscales - simplified scatter plots -------
 
 # Pull the data to plot a scatter plot
 data.scat <- ICI.s %>%
@@ -901,7 +906,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 3 (Figure 3): Descriptive view of 4 ICI Subscales (SIMPLIFIED HEATMAPS) -------
+### Descriptive view of 4 ICI Subscales - simplified heatmaps -------
 ICI.s.count <- ICI.s %>% select(Factor1, Factor2) %>% 
   group_by(Factor1, Factor2) %>%
   summarise(cnt = n(), .groups="drop") %>% 
@@ -963,8 +968,8 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 4: Dendrograms for HCA on ICI -----------------------------------
-# ...Figure 4(top): Dendrogram from HCA Euclidean/Ward --------------------------
+#### EXAMPLE 4: Basic HCA on ICI -----------------------------------
+### Euclidean/Ward, original order - dendrogram --------------------------
 
 dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
 hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
@@ -1008,7 +1013,7 @@ ggplot(dend.cust) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (original order)") +
   guides(color = guide_legend("")) +
-  ylab("height") +
+  ylab("Height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
@@ -1037,7 +1042,7 @@ hca %>%
             Factor4.s = sd(Factor4))
 
 
-# ...Figure 4(top) - Alternative: Boxplot from HCA Euclidean/Ward --------------------------
+### Euclidean/Ward, original order - box plot --------------------------
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -1078,7 +1083,7 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -1093,7 +1098,7 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -1110,11 +1115,12 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
-# ...Figure 4(A): Dendrogram for HCA Euclidean/Average --------------------------
+
+### Euclidean/Average - dendrogram --------------------------
 
 # This section of code is identical to the previous except it swaps out the linkage measure and updates the 
 # cluster sizes when determining the colors.
@@ -1161,7 +1167,7 @@ ggplot(dend.cust) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and average linkage (original order)") +
   guides(color = guide_legend("")) +
-  ylab("height") +
+  ylab("Height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
@@ -1172,7 +1178,7 @@ ggplot(dend.cust) +
 dev.off()
 
 
-# ...Figure 4(A) - Alternative: Boxplot from HCA Euclidean/Average --------------------------
+### Euclidean/Average - box plot --------------------------
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -1213,12 +1219,12 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and average linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
 
-# ...Figure 4(B): Dendrogram for HCA Manhattan/Ward --------------------------
+### Manhattan/Ward - dendrogram  --------------------------
 
 # This section of code is identical to the previous except it swaps out the distance measure and updates the 
 # cluster sizes when determining the colors.
@@ -1265,7 +1271,7 @@ ggplot(dend.cust) +
   theme_classic() +
   ggtitle("Hierarchical with Manhattan distance and Ward's linkage (original order)") +
   guides(color = guide_legend("")) +
-  ylab("height") +
+  ylab("Height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
@@ -1276,7 +1282,7 @@ ggplot(dend.cust) +
 dev.off()
 
 
-# ...Figure 4(B) - Alternative: Boxplot from HCA Manhattan/Ward --------------------------
+### Manhattan/Ward - box plot --------------------------
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -1317,12 +1323,12 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Manhattan distance and Ward's linkage\n(original order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
 
-# ...Figure 4(C): Dendrogram from HCA Euclidean/Ward Random Order --------------------------
+### Euclidean/Ward, random order - dendrogram --------------------------
 
 # This section of code is identical to the previous except it randomizes the order of the data and updates the 
 # cluster sizes when determining the colors.
@@ -1372,7 +1378,7 @@ ggplot(dend.cust) +
   theme_classic() +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage (random order)") +
   guides(color = guide_legend("")) +
-  ylab("height") +
+  ylab("Height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
@@ -1383,7 +1389,7 @@ ggplot(dend.cust) +
 dev.off()
 
 
-# ...Figure 4(C) - Alternative: Boxplot from HCA Euclidean/Ward Random Order ------------
+### Euclidean/Ward, random order - box plot ------------
 
 # Combine assigned clusters into original data and manipulate data to count total sizes as a percent, order by
 # increase mean of Factor2 variable
@@ -1425,7 +1431,7 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(random order)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -1434,8 +1440,8 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-# Example 5: k-means on ICI -----------------------------------------------
-# ...Figure 5: Default (Euclidean) k-means on ICI -------------------------------------
+#### EXAMPLE 5: Basic k-means on ICI -----------------------------------------------
+### k-means on ICI, random start #1 -------------------------------------
 
 set.seed(1)                                         # set a random seed to recover original starting values
 ran.centers <- sample(1:nrow(ICI.s), 3)             # define random centers to start the algorithm
@@ -1490,7 +1496,7 @@ ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("k-means with euclidean distance (random centers #1)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -1507,7 +1513,7 @@ kmn.r %>%
             Factor4.s = sd(Factor4))
 
 
-# ...Supplemental Figure 1: k-means using Euclidean distance with different starting centers on ICI ------------------
+### k-means on ICI, random start #2 ------------------
 
 # The only difference between this code and the one to produce Figure 5 is changing the seed, which pulls a different
 # set of random starting values
@@ -1565,7 +1571,7 @@ ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   facet_wrap(~Cluster, ncol=2) +
   guides(fill = "none", color = "none") +
   ggtitle("k-means with euclidean distance (random centers #2)") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 dev.off()
 
@@ -1584,7 +1590,7 @@ kmn.r %>%
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
-# Example 6: Descriptive distribution across possible scores --------------
+#### EXAMPLE 6: Descriptive distribution across possible scores --------------
 
 # Generate a table of how many (percent) students chose each response possibility for each of the four variables
 round(table(ICI.s$Factor1) / nrow(ICI.s) * 100, 1)
@@ -1593,10 +1599,10 @@ round(table(ICI.s$Factor3) / nrow(ICI.s) * 100, 1)
 round(table(ICI.s$Factor4) / nrow(ICI.s) * 100, 1)
 
 
-# Example 7: Determining appropriate number of clusters -------------------
+#### EXAMPLE 7: Determining appropriate number of clusters -------------------
 
-# For Figures 6A-C, the x-axis is always 1 through 8, but we need to calculate the Within SS (6A),
-# Avg. Silhouette (6B), and Gap Statistic plus standard deviation (6C). The following code does this and
+# For these figures, the x-axis is always 1 through 8, but we need to calculate the Within SS (A),
+# Avg. Silhouette (B), and Gap Statistic plus standard deviation (C). The following code does this and
 # stores all values in one data frame.
 
 k_range <- 1:8
@@ -1623,7 +1629,6 @@ clustex$E_Gap <- e_gap$data$gap
 clustex$E_GapLow <- e_gap$data$ymin
 clustex$E_GapHigh <- e_gap$data$ymax
 
-
 # Hierarchical, Ward, Within SS
 w_wss <- factoextra::fviz_nbclust(ICI.s, hcut, method = "wss", 
                                   k.max = max(k_range), nstart = 10) 
@@ -1641,7 +1646,7 @@ clustex$W_Gap <- w_gap$data$gap
 clustex$W_GapLow <- w_gap$data$ymin
 clustex$W_GapHigh <- w_gap$data$ymax
 
-# ...Figure 6(A): Elbow method --------------------------------------------
+### Elbow method (A) --------------------------------------------
 
 # Manipulate the data with all number of clusters information for plotting: 
 clustexA <- clustex %>%
@@ -1662,7 +1667,7 @@ fig6A <- ggplot(clustexA, aes(x = Cluster, y = WSS, color = Method, group = Meth
   theme(plot.title = element_text(hjust = .5))
 print(fig6A) # if you want to view the plot alone
 
-# ...Figure 6(B): Average Silhouette method -------------------------------
+### Average Silhouette method (B) -------------------------------
 
 # Manipulate the data with all number of clusters information for plotting: 
 clustexB <- clustex %>%
@@ -1683,7 +1688,7 @@ fig6B <- ggplot(clustexB, aes(x = Cluster, y = Sil, color = Method, group = Meth
   theme(plot.title = element_text(hjust = .5))
 print(fig6B) # if you want to view the plot alone
 
-# ...Figure 6(C): Gap Statistic method ------------------------------------
+### Gap Statistic method (C) ------------------------------------
 
 # Manipulate the data with all number of clusters information for plotting: 
 clustexC <- clustex %>%
@@ -1711,7 +1716,7 @@ png("Figures/F6_NoClusters.png", res = 600, height = 1500, width = 5000)
 ggarrange(fig6A, fig6B, fig6C, nrow = 1, widths = c(1.25,1.25,2))
 dev.off()
 
-# ...Table 3: Number of clusters suggested by various indices -------------
+### Number of clusters suggested by various indices -------------
 
 # Use NbClust to calculate all 30 metrics using k-means:
 NbClust(ICI.s, distance="euclidean", min.nc = max(c(2,min(k_range))),
@@ -1728,6 +1733,8 @@ NbClust(ICI.s, distance="euclidean", min.nc = max(c(2,min(k_range))),
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
+#### * OPTIMAL CLUSTERING ON ICI * ---------------------------------
+
 # First, define the number of clusters you wish to analyze; which is better to do one at a time because of time constraints.
 # Also, we will think about how many times we want to iterate the analysis (iterations), so we can easily change this.
 
@@ -1740,7 +1747,7 @@ ksel <- 3
 # For each of the numbers of clusters to compute...
 for(ksel in ksels) {
   
-# Example 8: Repetitions to determine optimal solution (hierarchical) ---------------
+#### EXAMPLE 8: Optimal HCA ---------------
 
     # /////////////////// WARNING WARNING WARNING /////////////////// #
 
@@ -1748,7 +1755,7 @@ for(ksel in ksels) {
 # on the quality of your computer's processor)! If you want to verify the code is working, try changing the 
 # number of iterations to a smaller number, like 5, then change back to the desired value once it is working.
 
-# ...Conducting repetitions and saving results ----------------------
+### Conducting repetitions and saving results ----------------------
 
 if(CALC_REPS | 
    !file.exists(paste0("hca_",ksel,"_",iterations,"_reps.rda"))) {
@@ -1819,7 +1826,8 @@ clusteringshca$centers <- lapply(clusteringshca$centers, `names<-`, Names2)
 rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS",
                         "ksel", "iterations")))
 
-# ...Finding number of unique solutions -----------------------------------
+
+### Finding number of unique solutions -----------------------------------
 
 # Examine how many unique total sum of squares to gauge how many unique solutions were obtained based on 
 # total sums of squares or average silhouette:
@@ -1834,9 +1842,7 @@ fingerprint <- round(fingerprint, 1)
 fingerprint <- apply(fingerprint, 1, paste, collapse=" ")
 length(unique(fingerprint))
 
-
-# Example 9: Visualizing the solutions for HCA analysis -------------------
-# ...Figure 7: Boxplot of HCA solution optimized to Total SS ---------------------------------
+### Selecting best HCA solution ------------------
 
 # For the following analysis, we have chosen the solution with the maximum silhouette, but could also 
 # choose the solution with the minimum total sum of squares. All we do is identify the solution that led
@@ -1852,9 +1858,13 @@ tab <- tibble(as.vector(table(clusteringshca$df[[bestsoln_sil]]$Cluster))) %>%
   mutate(Cluster = 1:length(unique(clusteringshca$df[[bestsoln_sil]]$Cluster)),
          Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
   mutate(Label2lines = paste0("Cluster ", Cluster, "\nN = ", Size, " (",
-                        Percent, "%)"),
+                              Percent, "%)"),
          Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
-                        Percent, "%)"))
+                              Percent, "%)"))
+
+#### EXAMPLE 9: Visualizing HCA solution -------------------
+
+### HCA solution, box plot (cluster facets) ---------------------------------
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Cluster = tab$Label2lines[Cluster]) %>%
@@ -1879,13 +1889,13 @@ g <- ggplot(hca.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score))
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Cluster, ncol = 2) +
   guides(fill = "none", color = "none") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 print(g)
 dev.off()
 
 
-# ...Supplemental Figure 2: Alternative Figure 7 (boxplot 2) --------------------------
+### HCA solution, box plot (factor facets) ---------------------------------
 
 hca.box <- clusteringshca$df[[bestsoln_sil]] %>%
   mutate(Cluster = tab$Label3lines[Cluster]) %>%
@@ -1911,14 +1921,13 @@ g <- ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Score
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Scale) +
   guides(fill = "none", color = "none") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 if(ksel>4) g <- g +facet_wrap(~Scale, ncol= 1)
 print(g)       
 dev.off()
 
-
-# ...Supplemental Figure 3: Alternative Figure 7 (heat map) ------------------
+### HCA solution, centers heatmap ---------------------------------
 
 # Pull just the centers to plot a heat map
 hca.heat <- clusteringshca$centers[[bestsoln_sil]] %>%
@@ -1934,7 +1943,7 @@ g <- ggplot(hca.heat,aes(x = Cluster, y = Scale, fill = Score,
                     label = Score)) +
   geom_tile() +
   geom_text(aes(color = Score > 30)) +
-  xlab(NULL) + ylab("Scale") +
+  xlab(NULL) + ylab(NULL) +
   labs(fill = "Avg\nScore") +
   scale_fill_viridis(direction=-1) +
   scale_x_discrete() +
@@ -1948,7 +1957,7 @@ print(g)
 dev.off()
 
 
-# ...Supplemental Figure 4: Alternative Figure 7 (scatter plots) --------------------------
+### HCA solution, simplified scatter plots ---------------------------------
 
 # Pull the data to plot a scatter plot
 hca.scat <- clusteringshca$df[[bestsoln_sil]] %>%
@@ -1981,8 +1990,8 @@ for(cl in 1:ksel) {
   hca.factor1.factor2 <- ggplot(clScat,
       aes(x = Factor1, y = Factor2)) +
     geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.4, color=clColors[cl],
-                height=5, width=5)+
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
     geom_point(data=clCenter, size=5, shape="+",
                color="black") +
     scale_x_continuous(breaks=seq(0,100,by=25),
@@ -1997,8 +2006,8 @@ for(cl in 1:ksel) {
   hca.factor3.factor4 <- ggplot(clScat, 
           aes(x = Factor3, y = Factor4)) +
     geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.4, color=clColors[cl],
-                height=5, width=5)+
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
     geom_point(data=clCenter, size=5, shape="+",
                color="black") +
     scale_x_continuous(breaks=seq(0,100,by=25),
@@ -2036,7 +2045,97 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
 dev.off()
 
 
-# ...Supplemental Figure 5: Alternative Figure 7 (heatmaps) --------------------------
+### HCA solution, simplified scatter plots (black border) ---------------------------------
+
+# Pull the data to plot a scatter plot
+hca.scat <- clusteringshca$df[[bestsoln_sil]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Pull just the centers
+hca.center <- clusteringshca$centers[[bestsoln_sil]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+clColors <- viridis(ksel)
+lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
+
+for(cl in 1:(ceiling(ksel/2)*4)) {
+  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
+}
+
+for(cl in 1:ksel) {
+  clScat <- hca.scat[hca.scat$Cluster == tab$Label2lines[cl],]
+  clCenter <- hca.center[hca.center$Cluster == tab$Label2lines[cl],]
+  
+  # Create/Output Plot #1
+  hca.factor1.factor2 <- ggplot(clScat,
+                                aes(x = Factor1, y = Factor2)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  # Create/Output Plot #2
+  hca.factor3.factor4 <- ggplot(clScat, 
+                                aes(x = Factor3, y = Factor4)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  gcl <- ggarrange(hca.factor1.factor2, hca.factor3.factor4,
+                   widths = c(1,1))
+  
+  lsGrobs[[2*cl-1]] <- text_grob(
+    gsub("\n",", ",tab$Label2lines[cl]))
+  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
+    theme(plot.margin=margin(5,5,0,5),
+          panel.background = element_rect(color="black", size=1))
+  lsGrobs[[2*cl]] <- gcl + 
+    theme(plot.margin=margin(0,5,5,5),
+          panel.background = element_rect(color="black", size=1))
+}
+
+# Create/Output the plots together
+png(paste0("Figures/SF4_hca",ksel,"scat_bk.png"),
+    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+             heights=rep(c(1,5),ceiling(ksel/2)), 
+             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
+                                           seq(2,ceiling(ksel/2)*4,4))),
+                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
+                                           seq(4,ceiling(ksel/2)*4,4)))),
+                                  ncol=2, nrow=ceiling(ksel/2)*2),
+             padding=2)
+dev.off()
+
+
+### HCA solution, simplified heatmaps ---------------------------------
 
 # Pull the data to plot the heatmaps
 hca.hmap <- clusteringshca$df[[bestsoln_sil]] %>%
@@ -2141,7 +2240,7 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
 dev.off()
 
 
-# ...Supplemental Figure 6: Alternative Figure 7 (dendro) --------------------------
+### HCA solution, dendrogram ---------------------------------
 
 dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
 # hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
@@ -2181,7 +2280,7 @@ g <- ggplot(dend.cust) +
                    color = Cluster)) +
   theme_classic() +
   guides(color=guide_legend("")) +
-  ylab("height") +
+  ylab("Height") +
   scale_colour_viridis(discrete = TRUE) +
   theme(axis.line.x = element_blank(),
         axis.text.x = element_blank(),
@@ -2192,8 +2291,7 @@ g <- ggplot(dend.cust) +
 print(g)
 dev.off()
 
-# Example 10: Silhouette Plot (hierarchical) ---------------------------------------------
-# ...Figure 8: Silhouette Plot --------------------------------------------
+#### EXAMPLE 10: Silhouette Plot for HCA ---------------------------------------------
 
 # Pull required information from silhouette values
 hca.sil <- clusteringshca$df[[bestsoln_sil]] %>%
@@ -2215,7 +2313,7 @@ print(g)
 dev.off()
 
 
-# Example 11: 1,000 Bootstrap samples to determine stability (hierarchical) ------------------------------------
+#### EXAMPLE 11: Bootstrap samples to determine stability of HCA ------------------------------------
 
 # /////////////////// WARNING WARNING WARNING /////////////////// #
 
@@ -2223,7 +2321,7 @@ dev.off()
 # on the quality of your computer's processor)! If you want to verify the code is working, try changing the 
 # number of iterations to a smaller number, like 5, then change back to 1,000 once it is working.
 
-# ...Conducting bootstrap samples and saving results ----------------------
+### Conducting bootstrap samples and saving results ----------------------
 
 # We have not yet gotten rid of our previous environment, so we still have an object that houses the "best"
 # solution according to silhouette or within SS, whichever we chose. We will use this solution as the default
@@ -2263,7 +2361,7 @@ if(CALC_REPS |
   save(clusterings, file=paste0("hca_",ksel,"_",iterations,"_boot.rda"))
 }
 
-# ...Supplemental Figure 5: Adjusted Rand-Index Comparison for HCA --------
+### Adjusted Rand-Index distribution for HCA --------
 
 # Load the saved data and pull the ARI
 load(paste0("hca_",ksel,"_",iterations,"_boot.rda"))
@@ -2286,7 +2384,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
                         "ksel", "iterations")))
 
-# Example 12: k-means analyses --------------------------------------------
+#### EXAMPLE 12: Optimal k-means analyses --------------------------------------------
 
 # This section contains everything done for hierarchical results, except now for k-means analyses. The code is very
 # similar to that of the hierarchical, so much of it is not commented; see the hierarchical example for the rationale
@@ -2294,7 +2392,7 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
 
 # Unlike HCA, k-means is quite a fast algorithm, this section of code should have no problem running in ~5 minutes or less.
 
-# ...Conducting 1,000 repetitions and saving results ----------------------
+### Conducting repetitions and saving results ----------------------
 
 distData <- dist(ICI.s, method="euclidean") # dissimiliarity matrix to calculate silhouette
 df1 <- ICI.s                                # temp data set to avoid overwriting actual data in loop to come
@@ -2353,7 +2451,7 @@ clusteringskmn$centers <- lapply(clusteringskmn$centers, `names<-`, Names2)
 rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS",
                         "ksel", "iterations")))
 
-# ...Finding number of unique solutions -----------------------------------
+### Finding number of unique solutions -----------------------------------
 
 length(unique(unlist(clusteringskmn$totss)))
 length(unique(round(unlist(clusteringskmn$avgsil),6)))
@@ -2368,8 +2466,7 @@ fingerprint <- round(fingerprint,1)
 fingerprint <- apply(fingerprint, 1, paste, collapse=" ")
 length(unique(fingerprint))
 
-
-# ...Figure 9: Boxplot of k-means solution optimized to Total SS --------------
+### Selecting best k-means solution ------------------
 
 bestsoln_sil <- which.max(clusteringskmn$avgsil)  # optimal solution based on silhouette
 bestsoln_totss <- which.min(clusteringskmn$totss) # optimal solution based on total (within) ss
@@ -2383,6 +2480,8 @@ tab <- tibble(as.vector(table(clusteringskmn$df[[bestsoln_totss]]$Cluster))) %>%
                               Percent, "%)"),
          Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
                               Percent, "%)"))
+
+### Visualizing k-means solution - box plot (cluster facet) ------------------
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label2lines[Cluster]) %>%
@@ -2407,13 +2506,12 @@ g <- ggplot(kmn.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score))
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Cluster, ncol = 2) +
   guides(fill = "none", color = "none") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 print(g)
 dev.off()
 
-
-# ...Supplemental Figure 7: Alternative Figure 9 (boxplot 2) --------------------------
+### Visualizing k-means solution - box plot (factor facet) ------------------
 
 kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
   mutate(Cluster = tab$Label3lines[Cluster]) %>%
@@ -2438,14 +2536,13 @@ g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Score
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~Scale) +
   guides(fill = "none", color = "none") +
-  labs(x="Scale", y="Score")+
+  labs(x=NULL, y="Score")+
   theme_classic()
 if(ksel>4) g <- g +facet_wrap(~Scale, ncol= 1)
 print(g)       
 dev.off()
 
-
-# ...Supplemental Figure 8: Alternative Figure 9 (heat map) ------------------
+### Visualizing k-means solution - centers heatmap ------------------
 
 # Pull just the centers to plot a heat map
 kmn.heat <- clusteringskmn$centers[[bestsoln_totss]] %>%
@@ -2461,7 +2558,7 @@ g <- ggplot(kmn.heat,aes(x = Cluster, y = Scale, fill = Score,
                     label = Score)) +
   geom_tile() +
   geom_text(aes(color = Score > 30)) +
-  xlab(NULL) + ylab("Scale") +
+  xlab(NULL) + ylab(NULL) +
   labs(fill = "Avg\nScore") +
   scale_fill_viridis(direction=-1) +
   scale_x_discrete() +
@@ -2474,8 +2571,7 @@ g <- ggplot(kmn.heat,aes(x = Cluster, y = Scale, fill = Score,
 print(g)
 dev.off()
 
-
-# ...Supplemental Figure 9: Alternative Figure 9 (scatter plots) --------------------------
+### Visualizing k-means solution - simplified scatter plots ------------------
 
 # Pull the data to plot a scatter plot
 kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
@@ -2508,8 +2604,8 @@ for(cl in 1:ksel) {
   kmn.factor1.factor2 <- ggplot(clScat,
                                 aes(x = Factor1, y = Factor2)) +
     geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.4, color=clColors[cl],
-                height=5, width=5)+
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
     geom_point(data=clCenter, size=5, shape="+",
                color="black") +
     scale_x_continuous(breaks=seq(0,100,by=25),
@@ -2524,8 +2620,8 @@ for(cl in 1:ksel) {
   kmn.factor3.factor4 <- ggplot(clScat, 
                                 aes(x = Factor3, y = Factor4)) +
     geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.4, color=clColors[cl],
-                height=5, width=5)+
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
     geom_point(data=clCenter, size=5, shape="+",
                color="black") +
     scale_x_continuous(breaks=seq(0,100,by=25),
@@ -2563,7 +2659,97 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
 dev.off()
 
 
-# ...Supplemental Figure 10: Alternative Figure 9 (heatmaps) --------------------------
+### Visualizing k-means solution - simplified scatter plots (black border) ------------------
+
+# Pull the data to plot a scatter plot
+kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Pull just the centers
+kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+clColors <- viridis(ksel)
+lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
+
+for(cl in 1:(ceiling(ksel/2)*4)) {
+  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
+}
+
+for(cl in 1:ksel) {
+  clScat <- kmn.scat[kmn.scat$Cluster == tab$Label2lines[cl],]
+  clCenter <- kmn.center[kmn.center$Cluster == tab$Label2lines[cl],]
+  
+  # Create/Output Plot #1
+  kmn.factor1.factor2 <- ggplot(clScat,
+                                aes(x = Factor1, y = Factor2)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  # Create/Output Plot #2
+  kmn.factor3.factor4 <- ggplot(clScat, 
+                                aes(x = Factor3, y = Factor4)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  gcl <- ggarrange(kmn.factor1.factor2, kmn.factor3.factor4,
+                   widths = c(1,1))
+  
+  lsGrobs[[2*cl-1]] <- text_grob(
+    gsub("\n",", ",tab$Label2lines[cl]))
+  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
+    theme(plot.margin=margin(5,5,0,5),
+          panel.background = element_rect(color="black", size=1))
+  lsGrobs[[2*cl]] <- gcl + 
+    theme(plot.margin=margin(0,5,5,5),
+          panel.background = element_rect(color="black", size=1))
+}
+
+# Create/Output the plots together
+png(paste0("Figures/SF9_kmn",ksel,"scat_bk.png"),
+    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+             heights=rep(c(1,5),ceiling(ksel/2)), 
+             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
+                                           seq(2,ceiling(ksel/2)*4,4))),
+                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
+                                           seq(4,ceiling(ksel/2)*4,4)))),
+                                  ncol=2, nrow=ceiling(ksel/2)*2),
+             padding=2)
+dev.off()
+
+
+### Visualizing k-means solution - simplified heatmaps ------------------
 
 # Pull the data to plot the heatmaps
 kmn.hmap <- clusteringskmn$df[[bestsoln_totss]] %>%
@@ -2668,7 +2854,7 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
 dev.off()
 
 
-# ...Supplemental Figure 11: Silhouette Plot (k-means) --------------------------------------------
+### Visualizing k-means solution - silhouette plot ------------------
 
 # Pull required information from silhouette values
 kmn.sil <- clusteringskmn$df[[bestsoln_totss]] %>%
@@ -2689,7 +2875,8 @@ g <- ggplot(kmn.sil, aes(x = 1:nrow(kmn.sil), y = Silhouette, color = Cluster)) 
 print(g)
 dev.off()
 
-# ...Conducting bootstrap samples and saving results ----------------------
+### Determining stability of k-means ------------------------ 
+## . Conducting bootstrap samples and saving results ----------------------
 
 bestsoln <- clusteringskmn$df[[bestsoln_totss]]
 
@@ -2726,7 +2913,7 @@ if(CALC_REPS  |
   save(clusterings, file=paste0("kmn_",ksel,"_",iterations,"_boot.rda"))
 }
 
-# ...Supplemental Figure 12: Adjusted Rand-Index Comparison for k-means --------
+## . Adjusted Rand-Index distribution for k-means --------
 
 load(paste0("kmn_",ksel,"_",iterations,"_boot.rda"))
 bootkmn <- clusterings
