@@ -246,7 +246,7 @@ factor3.factor4 <-
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 9))
 
-png("Figures/XF1_DescriptiveTogetherJitter.png", height = 5200,
+png("Figures/SF1_DescriptiveTogetherJitter.png", height = 5200,
     width = 6000, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
@@ -428,7 +428,7 @@ factor3.factor4 <-
         axis.title = element_text(size = 9),
         legend.position="none")
 
-png("Figures/F3_DescriptiveTogetherHeatmap.png", 
+png("Figures/F4_DescriptiveTogetherHeatmap.png", 
     height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
@@ -612,7 +612,7 @@ factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, size = cnt)
         axis.title = element_text(size = 9),
         legend.position="none")
 
-png("Figures/XF2_DescriptiveTogetherDots.png", 
+png("Figures/XF1_DescriptiveTogetherDots.png", 
     height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
@@ -811,7 +811,7 @@ factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4,
         axis.title = element_text(size = 9),
         legend.position="none")
 
-png("Figures/XF3_DescriptiveTogetherCDots.png", 
+png("Figures/XF2_DescriptiveTogetherCDots.png", 
     height = 5200, width = 6500, res = 900)
 ggarrange(factor1.factor2, NULL, NULL,
           factor1.factor3, factor2.factor3, NULL,
@@ -838,7 +838,7 @@ data.out <- merge(data.box, data.lim) %>%
   filter(Value > upperW | Value < lowerW)
 
 # Create/Output the plot
-png("Figures/XF4_DescriptiveTogetherBoxPlots.png", 
+png("Figures/F3_DescriptiveTogetherBoxPlots.png", 
     height = 2000, width = 2000, res = 600)
 ggplot(data.box, aes(x = Subscale, y = Value)) +
   geom_boxplot(fill="grey", outlier.shape = NA) +
@@ -875,7 +875,6 @@ data.center <- ICI.s %>%
 
 # Create/Output Plot #1
 factor1.factor2 <- ggplot(data.scat, aes(x = Factor1, y = Factor2)) +
-  geom_encircle() +
   geom_jitter(shape=21, alpha=.2,
               height=5, width=5)+
   geom_point(data=data.center, size=5, shape="+") +
@@ -886,7 +885,6 @@ print(factor1.factor2) # to view one plot by itself
 
 # Create/Output Plot #2
 factor3.factor4 <- ggplot(data.scat, aes(x = Factor3, y = Factor4)) +
-  geom_encircle() +
   geom_jitter(shape=21, alpha=.2,
               height=5, width=5)+
   geom_point(data=data.center, size=5, shape="+") +
@@ -896,7 +894,7 @@ factor3.factor4 <- ggplot(data.scat, aes(x = Factor3, y = Factor4)) +
 print(factor3.factor4) # to view one plot by itself
 
 # Create/Output the two plots together
-png(paste0("Figures/XF5_DescriptiveTogetherSimpleScatter.png"), height = 2500, width = 4500,
+png(paste0("Figures/SF3_DescriptiveTogetherSimpleScatter.png"), height = 2500, width = 4500,
     res = 600)
 ggarrange(factor1.factor2, factor3.factor4,
           widths = c(1,1), ncol=2)
@@ -955,7 +953,7 @@ factor3.factor4 <- ggplot(ICI.s.count, aes(x = Factor3, y = Factor4, fill = cnt)
 
 
 # Create/Output the two plots together
-png(paste0("Figures/XF6_DescriptiveTogetherSimpleHeatmap.png"),
+png(paste0("Figures/SF2_DescriptiveTogetherSimpleHeatmap.png"),
     height = 2500, width = 5000,
     res = 600)
 ggarrange(factor1.factor2, factor3.factor4,
@@ -1006,7 +1004,7 @@ dend.cust <- dend_dat$segments %>%
   mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4original_hcaICIeucward.png", res = 600,
+png("Figures/F6_hcaICIeucward.png", res = 600,
     height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
@@ -1072,7 +1070,7 @@ hca.out <- merge(hca.l, hca.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png("Figures/F4original_hcaICIeucward_box.png", res = 600,
+png("Figures/F5_hcaICIeucward_box.png", res = 600,
     height = 2400, width = 3500)
 ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
@@ -1087,9 +1085,7 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   theme_classic()
 dev.off()
 
-png("Figures/XF4original_hcaICIeucward_box_jHV.png", res = 600,
-    height = 2400, width = 3500)
-ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
+altjHV <- ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(data = hca.out, shape=21, alpha=0.5,
               height=5, width=0.1)+
@@ -1100,11 +1096,8 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
   labs(x=NULL, y="Score")+
   theme_classic()
-dev.off()
 
-png("Figures/XF4original_hcaICIeucward_box_jHc.png", res = 600,
-    height = 2400, width = 3500)
-ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
+altjHc <- ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
   geom_point(data = hca.out, shape=21, alpha=0.1,
               position=position_jitter(height=0, width=0.2, seed=1))+
@@ -1117,7 +1110,6 @@ ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   ggtitle("Hierarchical with Euclidean distance and Ward's linkage\n(original order)") +
   labs(x=NULL, y="Score")+
   theme_classic()
-dev.off()
 
 
 ### Euclidean/Average - dendrogram --------------------------
@@ -1160,7 +1152,7 @@ dend.cust <- dend_dat$segments %>%
   mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4a_hcaICIeucavg.png", res = 600,
+png("Figures/XF3c_hcaICIeucavg.png", res = 600,
     height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
@@ -1208,7 +1200,7 @@ hca.out <- merge(hca.l, hca.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png("Figures/F4a_hcaICIeucavg_box.png", res = 600,
+png("Figures/F7c_hcaICIeucavg_box.png", res = 600,
     height = 2400, width = 3500)
 ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
@@ -1264,7 +1256,7 @@ dend.cust <- dend_dat$segments %>%
   mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4b_hcaICImanward.png", res = 600,
+png("Figures/XF3b_hcaICImanward.png", res = 600,
     height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
@@ -1312,7 +1304,7 @@ hca.out <- merge(hca.l, hca.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png("Figures/F4b_hcaICImanward_box.png", res = 600,
+png("Figures/F7b_hcaICImanward_box.png", res = 600,
     height = 2400, width = 3500)
 ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
@@ -1371,7 +1363,7 @@ dend.cust <- dend_dat$segments %>%
   mutate(Cluster=tab$Label3lines[Cluster])
 
 # Create dendrogram and output plot:
-png("Figures/F4c_hcaICIeucward.png", res = 600,
+png("Figures/XF3a_hcaICIeucward.png", res = 600,
     height = 1500, width = 4000)
 ggplot(dend.cust) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = Cluster)) +
@@ -1420,7 +1412,7 @@ hca.out <- merge(hca.l, hca.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png("Figures/F4c_hcaICIeucward_box.png", res = 600,
+png("Figures/F7a_hcaICIeucward_box.png", res = 600,
     height = 2400, width = 3500)
 ggplot(hca.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape = NA) +
@@ -1485,7 +1477,7 @@ kmn.out <- merge(kmn.l, kmn.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot (Figure 5)
-png("Figures/F5_kmneucorig.png", res = 600,
+png("Figures/F8_kmneucorig.png", res = 600,
     height = 2400, width = 3500)
 ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape=NA) +
@@ -1560,7 +1552,7 @@ kmn.out <- merge(kmn.l, kmn.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png("Figures/SF1_kmneucdiffcenters.png", res = 600,
+png("Figures/SF10_kmneucdiffcenters.png", res = 600,
     height = 2400, width = 3500)
 ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
   geom_boxplot(outlier.shape=NA) +
@@ -1589,6 +1581,7 @@ kmn.r %>%
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
 
 #### EXAMPLE 6: Descriptive distribution across possible scores --------------
 
@@ -1655,7 +1648,7 @@ clustexA <- clustex %>%
   mutate(Method = recode(Method, E_WSS = "K-means", W_WSS = "Hierarchical"))
 
 # Plot the data; saved to an object because Figure 6 has multiple plots to be used in ggarrange below
-fig6A <- ggplot(clustexA, aes(x = Cluster, y = WSS, color = Method, group = Method)) + 
+figA <- ggplot(clustexA, aes(x = Cluster, y = WSS, color = Method, group = Method)) + 
   geom_point() + 
   geom_line() + 
   ylab("Within SS") +
@@ -1665,7 +1658,7 @@ fig6A <- ggplot(clustexA, aes(x = Cluster, y = WSS, color = Method, group = Meth
   guides(color = "none") +
   theme_classic() +
   theme(plot.title = element_text(hjust = .5))
-print(fig6A) # if you want to view the plot alone
+print(figA) # if you want to view the plot alone
 
 ### Average Silhouette method (B) -------------------------------
 
@@ -1676,7 +1669,7 @@ clustexB <- clustex %>%
   mutate(Method = recode(Method, E_Sil = "K-means", W_Sil = "Hierarchical"))
 
 # Plot the data; saved to an object because Figure 6 has multiple plots to be used in ggarrange below
-fig6B <- ggplot(clustexB, aes(x = Cluster, y = Sil, color = Method, group = Method)) + 
+figB <- ggplot(clustexB, aes(x = Cluster, y = Sil, color = Method, group = Method)) + 
   geom_point() + 
   geom_line() + 
   ylab("Avg Silhouette") +
@@ -1686,7 +1679,7 @@ fig6B <- ggplot(clustexB, aes(x = Cluster, y = Sil, color = Method, group = Meth
   guides(color = "none") +
   theme_classic() +
   theme(plot.title = element_text(hjust = .5))
-print(fig6B) # if you want to view the plot alone
+print(figB) # if you want to view the plot alone
 
 ### Gap Statistic method (C) ------------------------------------
 
@@ -1699,7 +1692,7 @@ clustexC <- clustex %>%
          Low = c(clustex$E_GapLow, clustex$W_GapLow))
 
 # Plot the data; saved to an object because Figure 6 has multiple plots to be used in ggarrange below
-fig6C <- ggplot(clustexC, aes(x = Cluster, y = Gap, color = Method, group = Method)) + 
+figC <- ggplot(clustexC, aes(x = Cluster, y = Gap, color = Method, group = Method)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = Low, ymax = High), width = .2) +
   geom_line() + 
@@ -1709,11 +1702,11 @@ fig6C <- ggplot(clustexC, aes(x = Cluster, y = Gap, color = Method, group = Meth
   ggtitle("C") +
   theme_classic() +
   theme(plot.title = element_text(hjust = .5))
-print(fig6C) # if you want to view the plot alone
+print(figC) # if you want to view the plot alone
 
 # To view all on one plot, use ggarrange to put them altoether:
-png("Figures/F6_NoClusters.png", res = 600, height = 1500, width = 5000)
-ggarrange(fig6A, fig6B, fig6C, nrow = 1, widths = c(1.25,1.25,2))
+png("Figures/XF4_NoClusters.png", res = 600, height = 1500, width = 5000)
+ggarrange(figA, figB, figC, nrow = 1, widths = c(1.25,1.25,2))
 dev.off()
 
 ### Number of clusters suggested by various indices -------------
@@ -1742,9 +1735,9 @@ ksels <- 3:6             # Numbers of clusters to be calculated
 kpref <- 6               # 6 is the suggested preferred number of clusters
 iterations <- 1000       # 1000 is the suggested number of iterations
 
-ksel <- 3
 
 # For each of the numbers of clusters to compute...
+ksel <- 6
 for(ksel in ksels) {
   
 #### EXAMPLE 8: Optimal HCA ---------------
@@ -1824,7 +1817,7 @@ clusteringshca$centers <- lapply(clusteringshca$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS",
-                        "ksel", "iterations")))
+                        "ksel", "kpref","iterations")))
 
 
 ### Finding number of unique solutions -----------------------------------
@@ -1879,8 +1872,14 @@ hca.lim <- hca.box %>% group_by(Cluster, Scale) %>%
 hca.out <- merge(hca.box, hca.lim) %>% 
   filter(Score > upperW | Score < lowerW)
 
-png(paste0("Figures/F7_hca",ksel,"box.png"),
-        height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/F9_hca",ksel,"box.png"),
+          height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+} else {
+  png(paste0("Figures/SF15_hca",ksel,"box.png"),
+      height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+}
+
 g <- ggplot(hca.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(data = hca.out, shape=21, alpha=0.3,
@@ -2382,7 +2381,7 @@ dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
-                        "ksel", "iterations")))
+                        "ksel", "kpref", "iterations")))
 
 #### EXAMPLE 12: Optimal k-means analyses --------------------------------------------
 
@@ -2449,7 +2448,7 @@ clusteringskmn$centers <- lapply(clusteringskmn$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS",
-                        "ksel", "iterations")))
+                        "ksel", "kpref", "iterations")))
 
 ### Finding number of unique solutions -----------------------------------
 
