@@ -1817,7 +1817,7 @@ clusteringshca$centers <- lapply(clusteringshca$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringshca", "CALC_REPS",
-                        "ksel", "kpref","iterations")))
+                        "ksel", "ksels", "kpref","iterations")))
 
 
 ### Finding number of unique solutions -----------------------------------
@@ -2420,7 +2420,7 @@ dev.off()
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
-                        "ksel", "kpref", "iterations")))
+                        "ksel", "ksels", "kpref", "iterations")))
 
 # End of the loop for number of clusters
 }
@@ -2495,7 +2495,7 @@ clusteringskmn$centers <- lapply(clusteringskmn$centers, `names<-`, Names2)
 
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s", "clusteringskmn", "CALC_REPS",
-                        "ksel", "kpref", "iterations")))
+                        "ksel", "ksels", "kpref", "iterations")))
 
 ### Finding number of unique solutions -----------------------------------
 
