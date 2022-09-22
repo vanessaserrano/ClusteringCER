@@ -1476,7 +1476,7 @@ kmn.lim <- kmn.l %>% group_by(Cluster, Scale) %>%
 kmn.out <- merge(kmn.l, kmn.lim) %>% 
   filter(Score > upperW | Score < lowerW)
 
-# Create/Output the plot (Figure 5)
+# Create/Output the plot
 png("Figures/F8_kmneucorig.png", res = 600,
     height = 2400, width = 3500)
 ggplot(kmn.l, aes(x = Scale, y = Score, fill = Cluster, color = Cluster)) +
@@ -1507,7 +1507,7 @@ kmn.r %>%
 
 ### k-means on ICI, random start #2 ------------------
 
-# The only difference between this code and the one to produce Figure 5 is changing the seed, which pulls a different
+# The only difference between this code and the previous is changing the seed, which pulls a different
 # set of random starting values
 
 set.seed(45)                                         # set a random seed difference than original
@@ -1876,7 +1876,7 @@ if(ksel==kpref) {
   png(paste0("Figures/F9_hca",ksel,"box.png"),
           height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
 } else {
-  png(paste0("Figures/SF15_hca",ksel,"box.png"),
+  png(paste0("Figures/SF14_hca",ksel,"box.png"),
       height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
 }
 
@@ -1892,6 +1892,7 @@ g <- ggplot(hca.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score))
   theme_classic()
 print(g)
 dev.off()
+
 
 
 ### HCA solution, box plot (factor facets) ---------------------------------
@@ -1910,8 +1911,14 @@ hca.out <- merge(hca.box, hca.lim) %>%
   filter(Score > upperW | Score < lowerW)
 
 # Create/Output the plot
-png(paste0("Figures/SF2_hca",ksel,"box2.png"),
-    height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/XF5_hca",ksel,"box2.png"),
+      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+} else {
+  png(paste0("Figures/XF7_hca",ksel,"box2.png"),
+      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+}
+
 g <- ggplot(hca.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Score)) +
   geom_boxplot(outlier.shape=NA) +
   geom_jitter(data = hca.out, shape=21, alpha=0.3,
@@ -1936,8 +1943,14 @@ hca.heat <- clusteringshca$centers[[bestsoln_sil]] %>%
 hca.heat$Scale <- as.factor(hca.heat$Scale)
 
 # Create/Output the plot
-png(paste0("Figures/SF3_hca",ksel,"heat.png"),
-    height = 1500, width = ifelse(ksel>4,3500,2500), res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/XF6_hca",ksel,"heat.png"),
+      height = 1500, width = ifelse(ksel>4,3500,2500), res = 600)
+} else {
+  png(paste0("Figures/XF7_hca",ksel,"heat.png"),
+      height = 1500, width = ifelse(ksel>4,3500,2500), res = 600)
+}
+
 g <- ggplot(hca.heat,aes(x = Cluster, y = Scale, fill = Score,
                     label = Score)) +
   geom_tile() +
@@ -1955,6 +1968,172 @@ g <- ggplot(hca.heat,aes(x = Cluster, y = Scale, fill = Score,
 print(g)
 dev.off()
 
+### HCA solution, dendrogram ---------------------------------
+
+dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
+# hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
+# sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
+
+set.seed(bestsoln_sil)
+ranorder <- sample(1:nrow(ICI.s),nrow(ICI.s))
+df1 <- ICI.s[ranorder,]
+distData <- dist(df1, method="euclidean")
+hcbest <- agnes(distData, diss=T, method="ward")
+sol <- cutree(hcbest, ksel)
+
+# Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
+# simply use:
+#   plot(hcbest)
+
+# Create data that holds segments and labels: 
+dend <- as.dendrogram(hcbest) 
+dend_dat <- dendro_data(dend, type = "rectangle")
+
+# Set the color by the initial position of the segment (x)
+clusterSizes <- as.numeric(table(sol))
+clOrder <- sol[as.numeric(dend_dat$labels$label)]
+clOrder <- unique(clOrder)
+clusterSizes <- clusterSizes[clOrder]
+clusterSizes <- cumsum(clusterSizes)
+dend.cust <- dend_dat$segments %>%
+  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
+                                  function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
+  mutate(Cluster=tab$Label3lines[Cluster])
+
+# Create dendrogram and output plot:
+if(ksel==kpref) {
+  png(paste0("Figures/SF11_hca",ksel,"dendro.png"), res = 600,
+      height = 1500, width = 4000)
+} else {
+  png(paste0("Figures/XF7_hca",ksel,"dendro.png"), res = 600,
+      height = 1500, width = 4000)
+}
+
+g <- ggplot(dend.cust) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend,
+                   color = Cluster)) +
+  theme_classic() +
+  guides(color=guide_legend("")) +
+  ylab("Height") +
+  scale_colour_viridis(discrete = TRUE) +
+  theme(axis.line.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        plot.title = element_text(hjust = .5, vjust = .5),
+        legend.position = "top")
+print(g)
+dev.off()
+
+### HCA solution, simplified heatmaps ---------------------------------
+
+# Pull the data to plot the heatmaps
+hca.hmap <- clusteringshca$df[[bestsoln_sil]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
+
+for(cl in 1:(ceiling(ksel/2)*4)) {
+  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
+}
+
+for(cl in 1:ksel) {
+  clHm <- hca.hmap[hca.hmap$Cluster == tab$Label2lines[cl],]
+  
+  hca.count <- clHm %>% select(Factor1, Factor2) %>% 
+    group_by(Factor1, Factor2) %>%
+    summarise(cnt = n(), .groups="drop") %>% 
+    mutate(prc = round(cnt / nrow(clHm) * 100, 0))
+  hca.count$prc[hca.count$prc>50] <- 50
+  
+  factor1.factor2 <- ggplot(hca.count,
+                            aes(x = Factor1, y = Factor2, fill = prc)) + # Make the plot
+    geom_tile(width=12.5, height=25) +
+    scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5),
+                       limits=c(-15,115))+
+    scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5),
+                       limits=c(-15,115))+
+    scale_fill_viridis(discrete = FALSE, direction=-1,
+                       name="Percent over\ncluster size",
+                       limits=c(0,50),
+                       breaks=(0:5)*10) +
+    theme_classic() +
+    theme(axis.text = element_text(size = 8),
+          axis.title = element_text(size = 9),
+          legend.position="none",
+          plot.background = element_rect(fill=NA, color=NA))
+  
+  leg <- factor1.factor2 + 
+    guides(fill = guide_colorbar(reverse=TRUE)) +
+    theme(legend.position = "left",
+          legend.text = element_text(size = 8),
+          legend.title = element_text(size = 9),
+          legend.background = element_rect(fill=NA),
+          legend.box.margin = margin(0,5,0,0))
+  leg <- get_legend(leg)
+  
+  # Factor3 v Factor4
+  hca.count <- clHm %>% select(Factor3, Factor4) %>% 
+    group_by(Factor3, Factor4) %>%
+    summarise(cnt = n(), .groups="drop")  %>% 
+    mutate(prc = round(cnt / nrow(clHm) * 100, 0))
+  hca.count$prc[hca.count$prc>50] <- 50
+  
+  factor3.factor4 <- ggplot(hca.count, 
+                            aes(x = Factor3, y = Factor4, fill = prc)) + # Make the plot
+    geom_tile(width=25, height=25) +
+    scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5),
+                       limits=c(-15,115))+
+    scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5),
+                       limits=c(-15,115))+
+    scale_fill_viridis(discrete = FALSE, direction=-1,
+                       name="Percent over\ncluster size",
+                       limits=c(0,50),
+                       breaks=(0:5)*10) +
+    theme_classic() +
+    theme(axis.text = element_text(size = 8),
+          axis.title = element_text(size = 9),
+          legend.position="none",
+          plot.background = element_rect(fill=NA, color=NA))
+  
+  
+  gcl <- ggarrange(factor1.factor2, factor3.factor4,
+                   widths = c(1,1), ncol=2,
+                   legend.grob=leg,
+                   legend="right")
+  
+  lsGrobs[[2*cl-1]] <- text_grob(
+    gsub("\n",", ",tab$Label2lines[cl]))
+  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
+    theme(plot.margin=margin(5,5,0,5),
+          panel.background = element_rect(color="black", size=1))
+  lsGrobs[[2*cl]] <- gcl + 
+    theme(plot.margin=margin(0,5,5,5),
+          panel.background = element_rect(color="black", size=1))
+}
+
+# Create/Output the plots together
+if(ksel==kpref) {
+  png(paste0("Figures/SF12_hca",ksel,"heatmaps.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+} else {
+  png(paste0("Figures/XF7_hca",ksel,"heatmaps.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+}
+
+grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+             heights=rep(c(1,5),ceiling(ksel/2)), 
+             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
+                                           seq(2,ceiling(ksel/2)*4,4))),
+                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
+                                           seq(4,ceiling(ksel/2)*4,4)))),
+                                  ncol=2, nrow=ceiling(ksel/2)*2),
+             padding=2)
+dev.off()
 
 ### HCA solution, simplified scatter plots ---------------------------------
 
@@ -2031,8 +2210,14 @@ for(cl in 1:ksel) {
 }
 
 # Create/Output the plots together
-png(paste0("Figures/SF4_hca",ksel,"scat.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/SF13_hca",ksel,"scat.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+} else {
+  png(paste0("Figures/XF7_hca",ksel,"scat.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+}
+
 grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
           heights=rep(c(1,5),ceiling(ksel/2)), 
           layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
@@ -2120,10 +2305,7 @@ for(cl in 1:ksel) {
           panel.background = element_rect(color="black", size=1))
 }
 
-# Create/Output the plots together
-png(paste0("Figures/SF4_hca",ksel,"scat_bk.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
-grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+altbkborder <- grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
              heights=rep(c(1,5),ceiling(ksel/2)), 
              layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
                                            seq(2,ceiling(ksel/2)*4,4))),
@@ -2131,164 +2313,7 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
                                            seq(4,ceiling(ksel/2)*4,4)))),
                                   ncol=2, nrow=ceiling(ksel/2)*2),
              padding=2)
-dev.off()
 
-
-### HCA solution, simplified heatmaps ---------------------------------
-
-# Pull the data to plot the heatmaps
-hca.hmap <- clusteringshca$df[[bestsoln_sil]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster],
-         Factor1 = Factor1*100,
-         Factor2 = Factor2*100,
-         Factor3 = Factor3*100,
-         Factor4 = Factor4*100)
-
-lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
-
-for(cl in 1:(ceiling(ksel/2)*4)) {
-  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
-}
-
-for(cl in 1:ksel) {
-  clHm <- hca.hmap[hca.hmap$Cluster == tab$Label2lines[cl],]
-  
-  hca.count <- clHm %>% select(Factor1, Factor2) %>% 
-    group_by(Factor1, Factor2) %>%
-    summarise(cnt = n(), .groups="drop") %>% 
-    mutate(prc = round(cnt / nrow(clHm) * 100, 0))
-  hca.count$prc[hca.count$prc>50] <- 50
-  
-  factor1.factor2 <- ggplot(hca.count,
-          aes(x = Factor1, y = Factor2, fill = prc)) + # Make the plot
-    geom_tile(width=12.5, height=25) +
-    scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5),
-                       limits=c(-15,115))+
-    scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5),
-                       limits=c(-15,115))+
-    scale_fill_viridis(discrete = FALSE, direction=-1,
-                       name="Percent over\ncluster size",
-                       limits=c(0,50),
-                       breaks=(0:5)*10) +
-    theme_classic() +
-    theme(axis.text = element_text(size = 8),
-          axis.title = element_text(size = 9),
-          legend.position="none",
-          plot.background = element_rect(fill=NA, color=NA))
-  
-  leg <- factor1.factor2 + 
-    guides(fill = guide_colorbar(reverse=TRUE)) +
-    theme(legend.position = "left",
-          legend.text = element_text(size = 8),
-          legend.title = element_text(size = 9),
-          legend.background = element_rect(fill=NA),
-          legend.box.margin = margin(0,5,0,0))
-  leg <- get_legend(leg)
-  
-  # Factor3 v Factor4
-  hca.count <- clHm %>% select(Factor3, Factor4) %>% 
-    group_by(Factor3, Factor4) %>%
-    summarise(cnt = n(), .groups="drop")  %>% 
-    mutate(prc = round(cnt / nrow(clHm) * 100, 0))
-  hca.count$prc[hca.count$prc>50] <- 50
-  
-  factor3.factor4 <- ggplot(hca.count, 
-                            aes(x = Factor3, y = Factor4, fill = prc)) + # Make the plot
-    geom_tile(width=25, height=25) +
-    scale_x_continuous(breaks= 100 * seq(0,1,length.out = 5),
-                       limits=c(-15,115))+
-    scale_y_continuous(breaks= 100 * seq(0,1,length.out = 5),
-                       limits=c(-15,115))+
-    scale_fill_viridis(discrete = FALSE, direction=-1,
-                       name="Percent over\ncluster size",
-                       limits=c(0,50),
-                       breaks=(0:5)*10) +
-    theme_classic() +
-    theme(axis.text = element_text(size = 8),
-          axis.title = element_text(size = 9),
-          legend.position="none",
-          plot.background = element_rect(fill=NA, color=NA))
-  
-  
-    gcl <- ggarrange(factor1.factor2, factor3.factor4,
-                     widths = c(1,1), ncol=2,
-                     legend.grob=leg,
-                     legend="right")
-  
-  lsGrobs[[2*cl-1]] <- text_grob(
-    gsub("\n",", ",tab$Label2lines[cl]))
-  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
-    theme(plot.margin=margin(5,5,0,5),
-          panel.background = element_rect(color="black", size=1))
-  lsGrobs[[2*cl]] <- gcl + 
-    theme(plot.margin=margin(0,5,5,5),
-          panel.background = element_rect(color="black", size=1))
-}
-
-# Create/Output the plots together
-png(paste0("Figures/SF6_hca",ksel,"heatmaps.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
-grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
-             heights=rep(c(1,5),ceiling(ksel/2)), 
-             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
-                                           seq(2,ceiling(ksel/2)*4,4))),
-                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
-                                           seq(4,ceiling(ksel/2)*4,4)))),
-                                  ncol=2, nrow=ceiling(ksel/2)*2),
-             padding=2)
-dev.off()
-
-
-### HCA solution, dendrogram ---------------------------------
-
-dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
-# hc <- hclust(dist.ICI, method = "ward.D2")    # run hca algorithm
-# sol <- cutree(hc, 3)                          # cut dendrogram into 3 clusters
-
-set.seed(bestsoln_sil)
-ranorder <- sample(1:nrow(ICI.s),nrow(ICI.s))
-df1 <- ICI.s[ranorder,]
-distData <- dist(df1, method="euclidean")
-hcbest <- agnes(distData, diss=T, method="ward")
-sol <- cutree(hcbest, ksel)
-
-# Will build the dendrogram by hand to plot in ggplot and customize colors. If you want default dendrogram,
-# simply use:
-#   plot(hcbest)
-
-# Create data that holds segments and labels: 
-dend <- as.dendrogram(hcbest) 
-dend_dat <- dendro_data(dend, type = "rectangle")
-
-# Set the color by the initial position of the segment (x)
-clusterSizes <- as.numeric(table(sol))
-clOrder <- sol[as.numeric(dend_dat$labels$label)]
-clOrder <- unique(clOrder)
-clusterSizes <- clusterSizes[clOrder]
-clusterSizes <- cumsum(clusterSizes)
-dend.cust <- dend_dat$segments %>%
-  mutate(Cluster = clOrder[sapply(dend_dat$segments$x, 
-                          function(xseg) sum(clusterSizes+0.5 <= xseg)+1)]) %>% 
-  mutate(Cluster=tab$Label3lines[Cluster])
-
-# Create dendrogram and output plot:
-png(paste0("Figures/SF7_hca",ksel,"dendro.png"), res = 600,
-    height = 1500, width = 4000)
-g <- ggplot(dend.cust) +
-  geom_segment(aes(x = x, y = y, xend = xend, yend = yend,
-                   color = Cluster)) +
-  theme_classic() +
-  guides(color=guide_legend("")) +
-  ylab("Height") +
-  scale_colour_viridis(discrete = TRUE) +
-  theme(axis.line.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        plot.title = element_text(hjust = .5, vjust = .5),
-        legend.position = "top")
-print(g)
-dev.off()
 
 #### EXAMPLE 10: Silhouette Plot for HCA ---------------------------------------------
 
@@ -2298,7 +2323,14 @@ hca.sil <- clusteringshca$df[[bestsoln_sil]] %>%
          Silhouette = clusteringshca$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
-png(paste0("Figures/F8_hca",ksel,"sil.png"), height = 1500, width = 2500, res = 600)
+
+if(ksel==kpref) {
+  png(paste0("Figures/F10_hca",ksel,"sil.png"), 
+      height = 1500, width = 2500, res = 600)
+} else {
+  png(paste0("Figures/SF14_hca",ksel,"sil.png"), 
+      height = 1500, width = 2500, res = 600)
+}
 g <- ggplot(hca.sil, aes(x = 1:nrow(hca.sil), y = Silhouette, color = Cluster)) +
   geom_segment(aes(xend = 1:nrow(hca.sil), yend = 0)) +
   geom_hline(yintercept = mean(hca.sil$Silhouette), lty = 2) +
@@ -2368,7 +2400,14 @@ boothca <- clusterings
 boothca.ari <- data.frame(ARI = unlist(boothca$ari))
 
 # Plot/Output the desired graph:
-png(paste0("Figures/SF8_hca",ksel,"boot_ari.png"), height = 1500, width = 2000, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/SF15_hca",ksel,"boot_ari.png"),
+      height = 1500, width = 2000, res = 600)
+} else {
+  png(paste0("Figures/XF8_hca",ksel,"boot_ari.png"),
+      height = 1500, width = 2000, res = 600)
+}
+
 g <- ggplot(boothca.ari, aes(x = ARI)) +
   geom_histogram(fill = "grey80", color = "black", binwidth = 0.025,
                  boundary=1) + 
@@ -2382,6 +2421,14 @@ dev.off()
 # Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
                         "ksel", "kpref", "iterations")))
+
+# End of the loop for number of clusters
+}
+
+
+# For each of the numbers of clusters to compute...
+ksel <- 6
+for(ksel in ksels) {
 
 #### EXAMPLE 12: Optimal k-means analyses --------------------------------------------
 
@@ -2495,8 +2542,14 @@ kmn.lim <- kmn.box %>% group_by(Cluster, Scale) %>%
 kmn.out <- merge(kmn.box, kmn.lim) %>% 
   filter(Score > upperW | Score < lowerW)
 
-png(paste0("Figures/F9_kmn",ksel,"box.png"),
-    height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/F11_kmn",ksel,"box.png"),
+      height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+} else {
+  png(paste0("Figures/SF18_kmn",ksel,"box.png"),
+      height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+}
+
 g <- ggplot(kmn.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(data = kmn.out, shape=21, alpha=0.3,
@@ -2510,242 +2563,6 @@ g <- ggplot(kmn.box, aes(x = Scale, fill = Cluster, color = Cluster, y = Score))
 print(g)
 dev.off()
 
-### Visualizing k-means solution - box plot (factor facet) ------------------
-
-kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label3lines[Cluster]) %>%
-  pivot_longer(-Cluster, names_to = "Scale", values_to = "Score") %>%
-  mutate(Score = Score * 100)
-
-kmn.lim <- kmn.box %>% group_by(Cluster, Scale) %>% 
-  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
-            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
-            .groups="drop")
-
-kmn.out <- merge(kmn.box, kmn.lim) %>% 
-  filter(Score > upperW | Score < lowerW)
-
-png(paste0("Figures/SF7_kmn",ksel,"box2.png"),
-    height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
-g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Score)) +
-  geom_boxplot(outlier.shape=NA) +
-  geom_jitter(data = kmn.out, shape=21, alpha=0.3,
-              height=0, width=0.2, color="black") +
-  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
-  scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~Scale) +
-  guides(fill = "none", color = "none") +
-  labs(x=NULL, y="Score")+
-  theme_classic()
-if(ksel>4) g <- g +facet_wrap(~Scale, ncol= 1)
-print(g)       
-dev.off()
-
-### Visualizing k-means solution - centers heatmap ------------------
-
-# Pull just the centers to plot a heat map
-kmn.heat <- clusteringskmn$centers[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label3lines[Cluster]) %>%
-  pivot_longer(-Cluster, names_to = "Scale", values_to = "Score") %>%
-  mutate(Score = round(Score * 100, digits = 1))
-kmn.heat$Scale <- as.factor(kmn.heat$Scale)
-
-# Create/Output the plot
-png(paste0("Figures/SF8_kmn",ksel,"heat.png"), 
-    height = 1500, width = ifelse(ksel>4, 3500, 2500), res = 600)
-g <- ggplot(kmn.heat,aes(x = Cluster, y = Scale, fill = Score,
-                    label = Score)) +
-  geom_tile() +
-  geom_text(aes(color = Score > 30)) +
-  xlab(NULL) + ylab(NULL) +
-  labs(fill = "Avg\nScore") +
-  scale_fill_viridis(direction=-1) +
-  scale_x_discrete() +
-  scale_y_discrete(limits=rev(levels(kmn.heat$Scale))) +
-  scale_color_manual(values=c("black","white")) +
-  guides(color = "none") +
-  theme_classic() +
-  theme(axis.line = element_blank(),
-        axis.ticks = element_blank())
-print(g)
-dev.off()
-
-### Visualizing k-means solution - simplified scatter plots ------------------
-
-# Pull the data to plot a scatter plot
-kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster],
-         Factor1 = Factor1*100,
-         Factor2 = Factor2*100,
-         Factor3 = Factor3*100,
-         Factor4 = Factor4*100)
-
-# Pull just the centers
-kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster],
-         Factor1 = Factor1*100,
-         Factor2 = Factor2*100,
-         Factor3 = Factor3*100,
-         Factor4 = Factor4*100)
-
-clColors <- viridis(ksel)
-lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
-
-for(cl in 1:(ceiling(ksel/2)*4)) {
-  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
-}
-
-for(cl in 1:ksel) {
-  clScat <- kmn.scat[kmn.scat$Cluster == tab$Label2lines[cl],]
-  clCenter <- kmn.center[kmn.center$Cluster == tab$Label2lines[cl],]
-  
-  # Create/Output Plot #1
-  kmn.factor1.factor2 <- ggplot(clScat,
-                                aes(x = Factor1, y = Factor2)) +
-    geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
-                color=clColors[cl], height=5, width=5)+
-    geom_point(data=clCenter, size=5, shape="+",
-               color="black") +
-    scale_x_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    scale_y_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    guides(color = "none") +
-    theme_classic() +
-    theme(plot.background = element_rect(fill=NA, color=NA))
-  
-  # Create/Output Plot #2
-  kmn.factor3.factor4 <- ggplot(clScat, 
-                                aes(x = Factor3, y = Factor4)) +
-    geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
-                color=clColors[cl], height=5, width=5)+
-    geom_point(data=clCenter, size=5, shape="+",
-               color="black") +
-    scale_x_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    scale_y_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    guides(color = "none") +
-    theme_classic() +
-    theme(plot.background = element_rect(fill=NA, color=NA))
-  
-  gcl <- ggarrange(kmn.factor1.factor2, kmn.factor3.factor4,
-                   widths = c(1,1))
-  
-  lsGrobs[[2*cl-1]] <- text_grob(
-    gsub("\n",", ",tab$Label2lines[cl]))
-  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
-    theme(plot.margin=margin(5,5,0,5),
-          panel.background = element_rect(color="black", size=1))
-  lsGrobs[[2*cl]] <- gcl + 
-    theme(plot.margin=margin(0,5,5,5),
-          panel.background = element_rect(color="black", size=1))
-}
-
-# Create/Output the plots together
-png(paste0("Figures/SF9_kmn",ksel,"scat.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
-grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
-             heights=rep(c(1,5),ceiling(ksel/2)), 
-             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
-                                           seq(2,ceiling(ksel/2)*4,4))),
-                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
-                                           seq(4,ceiling(ksel/2)*4,4)))),
-                                  ncol=2, nrow=ceiling(ksel/2)*2),
-             padding=2)
-dev.off()
-
-
-### Visualizing k-means solution - simplified scatter plots (black border) ------------------
-
-# Pull the data to plot a scatter plot
-kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster],
-         Factor1 = Factor1*100,
-         Factor2 = Factor2*100,
-         Factor3 = Factor3*100,
-         Factor4 = Factor4*100)
-
-# Pull just the centers
-kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
-  mutate(Cluster = tab$Label2lines[Cluster],
-         Factor1 = Factor1*100,
-         Factor2 = Factor2*100,
-         Factor3 = Factor3*100,
-         Factor4 = Factor4*100)
-
-clColors <- viridis(ksel)
-lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
-
-for(cl in 1:(ceiling(ksel/2)*4)) {
-  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
-}
-
-for(cl in 1:ksel) {
-  clScat <- kmn.scat[kmn.scat$Cluster == tab$Label2lines[cl],]
-  clCenter <- kmn.center[kmn.center$Cluster == tab$Label2lines[cl],]
-  
-  # Create/Output Plot #1
-  kmn.factor1.factor2 <- ggplot(clScat,
-                                aes(x = Factor1, y = Factor2)) +
-    geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.3, color="black",
-                fill=clColors[cl],
-                height=5, width=5)+
-    geom_point(data=clCenter, size=5, shape="+",
-               color="black") +
-    scale_x_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    scale_y_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    guides(color = "none", fill="none") +
-    theme_classic() +
-    theme(plot.background = element_rect(fill=NA, color=NA))
-  
-  # Create/Output Plot #2
-  kmn.factor3.factor4 <- ggplot(clScat, 
-                                aes(x = Factor3, y = Factor4)) +
-    geom_encircle(color=clColors[cl]) +
-    geom_jitter(shape=21, alpha=.3, color="black",
-                fill=clColors[cl],
-                height=5, width=5)+
-    geom_point(data=clCenter, size=5, shape="+",
-               color="black") +
-    scale_x_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    scale_y_continuous(breaks=seq(0,100,by=25),
-                       limits=c(-10,110)) + 
-    guides(color = "none", fill="none") +
-    theme_classic() +
-    theme(plot.background = element_rect(fill=NA, color=NA))
-  
-  gcl <- ggarrange(kmn.factor1.factor2, kmn.factor3.factor4,
-                   widths = c(1,1))
-  
-  lsGrobs[[2*cl-1]] <- text_grob(
-    gsub("\n",", ",tab$Label2lines[cl]))
-  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
-    theme(plot.margin=margin(5,5,0,5),
-          panel.background = element_rect(color="black", size=1))
-  lsGrobs[[2*cl]] <- gcl + 
-    theme(plot.margin=margin(0,5,5,5),
-          panel.background = element_rect(color="black", size=1))
-}
-
-# Create/Output the plots together
-png(paste0("Figures/SF9_kmn",ksel,"scat_bk.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
-grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
-             heights=rep(c(1,5),ceiling(ksel/2)), 
-             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
-                                           seq(2,ceiling(ksel/2)*4,4))),
-                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
-                                           seq(4,ceiling(ksel/2)*4,4)))),
-                                  ncol=2, nrow=ceiling(ksel/2)*2),
-             padding=2)
-dev.off()
 
 
 ### Visualizing k-means solution - simplified heatmaps ------------------
@@ -2840,8 +2657,14 @@ for(cl in 1:ksel) {
 }
 
 # Create/Output the plots together
-png(paste0("Figures/SF10_kmn",ksel,"heatmaps.png"),
-    height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/SF16_kmn",ksel,"heatmaps.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+} else {
+  png(paste0("Figures/XF11_kmn",ksel,"box.png"),
+      height = ifelse(ksel>4, 2500, 2000), width = 3500, res = 600)
+}
+
 grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
              heights=rep(c(1,5),ceiling(ksel/2)), 
              layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
@@ -2853,6 +2676,260 @@ grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
 dev.off()
 
 
+### Visualizing k-means solution - simplified scatter plots ------------------
+
+# Pull the data to plot a scatter plot
+kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Pull just the centers
+kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+clColors <- viridis(ksel)
+lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
+
+for(cl in 1:(ceiling(ksel/2)*4)) {
+  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
+}
+
+for(cl in 1:ksel) {
+  clScat <- kmn.scat[kmn.scat$Cluster == tab$Label2lines[cl],]
+  clCenter <- kmn.center[kmn.center$Cluster == tab$Label2lines[cl],]
+  
+  # Create/Output Plot #1
+  kmn.factor1.factor2 <- ggplot(clScat,
+                                aes(x = Factor1, y = Factor2)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  # Create/Output Plot #2
+  kmn.factor3.factor4 <- ggplot(clScat, 
+                                aes(x = Factor3, y = Factor4)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=ifelse(ksel>4,0.6,0.5),
+                color=clColors[cl], height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  gcl <- ggarrange(kmn.factor1.factor2, kmn.factor3.factor4,
+                   widths = c(1,1))
+  
+  lsGrobs[[2*cl-1]] <- text_grob(
+    gsub("\n",", ",tab$Label2lines[cl]))
+  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
+    theme(plot.margin=margin(5,5,0,5),
+          panel.background = element_rect(color="black", size=1))
+  lsGrobs[[2*cl]] <- gcl + 
+    theme(plot.margin=margin(0,5,5,5),
+          panel.background = element_rect(color="black", size=1))
+}
+
+# Create/Output the plots together
+if(ksel==kpref) {
+  png(paste0("Figures/SF17_kmn",ksel,"scat.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+} else {
+  png(paste0("Figures/XF11_kmn",ksel,"scat.png"),
+      height = ceiling(ksel/2) * 2000, width = 8000, res = 600)
+}
+
+grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+             heights=rep(c(1,5),ceiling(ksel/2)), 
+             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
+                                           seq(2,ceiling(ksel/2)*4,4))),
+                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
+                                           seq(4,ceiling(ksel/2)*4,4)))),
+                                  ncol=2, nrow=ceiling(ksel/2)*2),
+             padding=2)
+dev.off()
+
+
+### Visualizing k-means solution - simplified scatter plots (black border) ------------------
+
+# Pull the data to plot a scatter plot
+kmn.scat <- clusteringskmn$df[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+# Pull just the centers
+kmn.center <- clusteringskmn$centers[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label2lines[Cluster],
+         Factor1 = Factor1*100,
+         Factor2 = Factor2*100,
+         Factor3 = Factor3*100,
+         Factor4 = Factor4*100)
+
+clColors <- viridis(ksel)
+lsGrobs <- vector(mode="list", ceiling(ksel/2)*4)
+
+for(cl in 1:(ceiling(ksel/2)*4)) {
+  lsGrobs[[cl]] <- as_ggplot(text_grob(""))
+}
+
+for(cl in 1:ksel) {
+  clScat <- kmn.scat[kmn.scat$Cluster == tab$Label2lines[cl],]
+  clCenter <- kmn.center[kmn.center$Cluster == tab$Label2lines[cl],]
+  
+  # Create/Output Plot #1
+  kmn.factor1.factor2 <- ggplot(clScat,
+                                aes(x = Factor1, y = Factor2)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  # Create/Output Plot #2
+  kmn.factor3.factor4 <- ggplot(clScat, 
+                                aes(x = Factor3, y = Factor4)) +
+    geom_encircle(color=clColors[cl]) +
+    geom_jitter(shape=21, alpha=.3, color="black",
+                fill=clColors[cl],
+                height=5, width=5)+
+    geom_point(data=clCenter, size=5, shape="+",
+               color="black") +
+    scale_x_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    scale_y_continuous(breaks=seq(0,100,by=25),
+                       limits=c(-10,110)) + 
+    guides(color = "none", fill="none") +
+    theme_classic() +
+    theme(plot.background = element_rect(fill=NA, color=NA))
+  
+  gcl <- ggarrange(kmn.factor1.factor2, kmn.factor3.factor4,
+                   widths = c(1,1))
+  
+  lsGrobs[[2*cl-1]] <- text_grob(
+    gsub("\n",", ",tab$Label2lines[cl]))
+  lsGrobs[[2*cl-1]] <- as_ggplot(lsGrobs[[2*cl-1]]) + 
+    theme(plot.margin=margin(5,5,0,5),
+          panel.background = element_rect(color="black", size=1))
+  lsGrobs[[2*cl]] <- gcl + 
+    theme(plot.margin=margin(0,5,5,5),
+          panel.background = element_rect(color="black", size=1))
+}
+
+# Create/Output the plots together
+altbkborder <- grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
+             heights=rep(c(1,5),ceiling(ksel/2)), 
+             layout_matrix=matrix(c(sort(c(seq(1,ceiling(ksel/2)*4,4),
+                                           seq(2,ceiling(ksel/2)*4,4))),
+                                    sort(c(seq(3,ceiling(ksel/2)*4,4),
+                                           seq(4,ceiling(ksel/2)*4,4)))),
+                                  ncol=2, nrow=ceiling(ksel/2)*2),
+             padding=2)
+
+
+### Visualizing k-means solution - box plot (factor facet) ------------------
+
+kmn.box <- clusteringskmn$df[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
+  pivot_longer(-Cluster, names_to = "Scale", values_to = "Score") %>%
+  mutate(Score = Score * 100)
+
+kmn.lim <- kmn.box %>% group_by(Cluster, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+kmn.out <- merge(kmn.box, kmn.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+if(ksel==kpref) {
+  png(paste0("Figures/XF9_kmn",ksel,"box2.png"),
+      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+} else {
+  png(paste0("Figures/XF11_kmn",ksel,"box2.png"),
+      height = ifelse(ksel>4, 5000, 2000), width = 3500, res = 600)
+}
+
+g <- ggplot(kmn.box, aes(x = Cluster, fill = Cluster, color = Cluster, y = Score)) +
+  geom_boxplot(outlier.shape=NA) +
+  geom_jitter(data = kmn.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~Scale) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="Score")+
+  theme_classic()
+if(ksel>4) g <- g +facet_wrap(~Scale, ncol= 1)
+print(g)       
+dev.off()
+
+### Visualizing k-means solution - centers heatmap ------------------
+
+# Pull just the centers to plot a heat map
+kmn.heat <- clusteringskmn$centers[[bestsoln_totss]] %>%
+  mutate(Cluster = tab$Label3lines[Cluster]) %>%
+  pivot_longer(-Cluster, names_to = "Scale", values_to = "Score") %>%
+  mutate(Score = round(Score * 100, digits = 1))
+kmn.heat$Scale <- as.factor(kmn.heat$Scale)
+
+# Create/Output the plot
+if(ksel==kpref) {
+  png(paste0("Figures/XF10_kmn",ksel,"heat.png"), 
+      height = 1500, width = ifelse(ksel>4, 3500, 2500), res = 600)
+} else {
+  png(paste0("Figures/XF11_kmn",ksel,"heat.png"), 
+      height = 1500, width = ifelse(ksel>4, 3500, 2500), res = 600)
+}
+
+g <- ggplot(kmn.heat,aes(x = Cluster, y = Scale, fill = Score,
+                    label = Score)) +
+  geom_tile() +
+  geom_text(aes(color = Score > 30)) +
+  xlab(NULL) + ylab(NULL) +
+  labs(fill = "Avg\nScore") +
+  scale_fill_viridis(direction=-1) +
+  scale_x_discrete() +
+  scale_y_discrete(limits=rev(levels(kmn.heat$Scale))) +
+  scale_color_manual(values=c("black","white")) +
+  guides(color = "none") +
+  theme_classic() +
+  theme(axis.line = element_blank(),
+        axis.ticks = element_blank())
+print(g)
+dev.off()
+
+
 ### Visualizing k-means solution - silhouette plot ------------------
 
 # Pull required information from silhouette values
@@ -2861,7 +2938,14 @@ kmn.sil <- clusteringskmn$df[[bestsoln_totss]] %>%
          Silhouette = clusteringskmn$sil[[bestsoln_sil]]) %>%
   arrange(Cluster, -Silhouette)
 
-png(paste0("Figures/SF11_kmn",ksel,"sil.png"), height = 1500, width = 2500, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/F12_kmn",ksel,"sil.png"), 
+      height = 1500, width = 2500, res = 600)
+} else {
+  png(paste0("Figures/SF18_kmn",ksel,"sil.png"), 
+      height = 1500, width = 2500, res = 600)
+}
+
 g <- ggplot(kmn.sil, aes(x = 1:nrow(kmn.sil), y = Silhouette, color = Cluster)) +
   geom_segment(aes(xend = 1:nrow(kmn.sil), yend = 0)) +
   geom_hline(yintercept = mean(kmn.sil$Silhouette), lty = 2) +
@@ -2919,7 +3003,14 @@ bootkmn <- clusterings
 bootkmn.ari <- data.frame(ARI = unlist(bootkmn$ari))
 
 # Plot/Output the desired graph:
-png(paste0("Figures/SF12_kmn",ksel,"boot_ari.png"), height = 1500, width = 2000, res = 600)
+if(ksel==kpref) {
+  png(paste0("Figures/SF19_kmn",ksel,"boot_ari.png"), 
+      height = 1500, width = 2000, res = 600)
+} else {
+  png(paste0("Figures/XF12_kmn",ksel,"boot_ari.png"), 
+      height = 1500, width = 2000, res = 600)
+}
+
 g <- ggplot(bootkmn.ari, aes(x = ARI)) +
   geom_histogram(fill = "grey80", color = "black", binwidth = 0.025,
                  boundary=1) + 
