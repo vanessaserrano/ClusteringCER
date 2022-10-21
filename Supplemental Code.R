@@ -15,6 +15,8 @@ options(install.packages.check.source = "no")
 pckgs<-c("tidyverse", "viridis", "gridExtra", "ggpubr", 
          "ggalt", "ggthemes", "RColorBrewer",
          "cluster", "GGally", "mclust",
+         "apcluster", "kernlab", "e1071",
+         "dbscan", "kohonen",
          "factoextra", "gtools", "fossil",
          "dendextend", "ggdendro", "NbClust",
          "ggtext")
@@ -25,8 +27,6 @@ for(pckg in pckgs2Install) {
   install.packages(pckg,repos="https://cloud.r-project.org/",
                    quiet=TRUE, type="binary")}
 for(pckg in pckgs2Load) {library(pckg,character.only = TRUE)}
-
-
 
 
 #### SETTINGS -----------------------------------------------
@@ -966,7 +966,2189 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-#### EXAMPLE 4: Basic HCA on ICI -----------------------------------
+#### EXAMPLE 4: Simulated data sets ---------------------------------
+### Functions ####
+relabel <- function(data, var){
+  data.sum <- data %>%
+    select(Factor1:Factor4, var) %>%
+    group_by_at(vars(var)) %>%
+    summarize(across(everything(), mean)) %>%
+    rowwise() %>%
+    mutate(Avg = mean(Factor1:Factor4))
+  
+  data[,var][data[,var] == which.max(data.sum$Avg)] <- 100 # high group
+  data[,var][data[,var] == which.min(data.sum$Avg)] <- 0   # low group
+  data[,var][data[,var] == 1 | data[,var] == 2 | data[,var] == 3] <- 50   # mid group
+  data <- data %>%
+    mutate_at(vars(var), as.character) %>%
+    mutate_at(vars(var), recode, `0` = "Low*", `50` = "Mid*", `100` = "High*") %>%
+    mutate_at(vars(var), factor, levels = c("Low*", "Mid*", "High*"), ordered = T)
+  
+  data
+}
+
+# Simulation of data
+sampdat <- function(avg, sd, seed){
+  set.seed(seed)
+  num <- rnorm(1000, avg, sd)
+  num[num<0] <- NA
+  num[num>100] <- NA
+  na.omit(num)[1:100]
+}
+
+# SDS1 - Low noise dataset
+avgs <- list(25, 50, 75)
+sd <- 10
+sds1 <- tibble(Factor1 = unlist(map2(avgs, c(1,2,3), sampdat, sd = sd)),
+               Factor2 = unlist(map2(avgs, c(4,5,6), sampdat, sd = sd)),
+               Factor3 = unlist(map2(avgs, c(7,8,9), sampdat, sd = sd)),
+               Factor4 = unlist(map2(avgs, c(10,11,12), sampdat, sd = sd)),
+               Group = factor(rep(c("Low", "Mid", "High"), each = 100), levels = c("Low", "Mid", "High")))
+
+# SDS2 - High noise dataset
+avgs <- list(25, 50, 75)
+sd <- 17.5
+sds2 <- tibble(Factor1 = unlist(map2(avgs, c(1,2,3), sampdat, sd = sd)),
+               Factor2 = unlist(map2(avgs, c(4,5,6), sampdat, sd = sd)),
+               Factor3 = unlist(map2(avgs, c(7,8,9), sampdat, sd = sd)),
+               Factor4 = unlist(map2(avgs, c(10,11,12), sampdat, sd = sd)),
+               Group = factor(rep(c("Low", "Mid", "High"), each = 100), levels = c("Low", "Mid", "High")))
+
+# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end 
+# to add them all to the same canvas. 
+leg.dat <- tibble(x = 1:3, y = 1:3, colshape = factor(c("Low", "Mid", "High"), levels = c("Low", "Mid", "High")))
+leg.dat.x <- tibble(x = 1:4, y = 1:4, colshape = factor(c("Low", "Mid", "High", "Misassigned"), levels = c("Low", "Mid", "High", "Misassigned")))
+
+leg.plot <- ggplot(leg.dat, aes(x = x, y = y, color = colshape, shape = colshape)) +
+  geom_point() +
+  scale_shape_manual(values = c(rep(19, 3)), name = "Legend") +
+  scale_color_manual(values = c("#3a5e8cFF", "#10a53dFF", "#541252FF"), name = "Legend") +
+  theme_bw()
+leg.plot.x <- ggplot(leg.dat.x, aes(x = x, y = y, color = colshape, shape = colshape)) +
+  geom_point() +
+  scale_shape_manual(values = c(rep(19, 3), 4), name = "Legend") +
+  scale_color_manual(values = c("#3a5e8cFF", "#10a53dFF", "#541252FF", "black"), name = "Legend") +
+  theme_bw()
+
+leg.plot <- as_ggplot(get_legend(leg.plot))
+leg.plot.x <- as_ggplot(get_legend(leg.plot.x))
+
+
+dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
+clColors <- viridis(3)
+
+# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end
+# to add them all to the same canvas.
+
+sds1m <- sds1 %>% 
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T))
+
+### Descriptive view of SDS1 -------
+
+# Factor1 v Factor2
+dat$rcor <-
+  round(cor(sds1m$Factor1, sds1m$Factor2), 3) # Pearson correlation for indicated variables
+(factor1.factor2 <-
+    ggplot(sds1m, aes(x = Factor1, y = Factor2, color=Group)) + # Make the plot
+    geom_point(alpha=0.9, size = 2, shape = 21) +
+    annotate(geom="richtext", fill=NA, label.color=NA,
+             x = 50, y = 110, vjust=0,  
+             label = paste("<i>r</i> =", dat$rcor), size = 3) +
+    scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                       limits = 100 * c(-0.1, 1.1)) +
+    scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                       limits = 100 * c(-0.1, 1.25)) +
+    scale_color_manual(values=clColors)+
+    theme_classic() +
+    theme(axis.text = element_text(size = 8),
+          axis.title = element_text(size = 9)))
+
+tab <- as.data.frame(table(sds1m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds1m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF4_sds1_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="Score")+
+  theme_classic()
+print(g)
+dev.off()
+
+
+dat <- data.frame(x = .5, y = .625, rcor = 0) # create correlation information at x=0.5, y = 0.625
+clColors <- viridis(3)
+
+# To create one ggplot with multiple plots, make each on individually and then use ggarrange at end
+# to add them all to the same canvas.
+
+sds2m <- sds2 %>% 
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T))
+
+### Descriptive view of SDS2 -------
+
+# Factor1 v Factor2
+dat$rcor <-
+  round(cor(sds2m$Factor1, sds2m$Factor2), 3) # Pearson correlation for indicated variables
+(factor1.factor2 <-
+    ggplot(sds2m, aes(x = Factor1, y = Factor2, color=Group)) + # Make the plot
+    geom_point(alpha=0.9, size = 2, shape = 21) +
+    annotate(geom="richtext", fill=NA, label.color=NA,
+             x = 50, y = 110, vjust=0,  
+             label = paste("<i>r</i> =", dat$rcor), size = 3) +
+    scale_x_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                       limits = 100 * c(-0.1, 1.1)) +
+    scale_y_continuous(breaks = 100 * seq(0, 1, length.out = 5),
+                       limits = 100 * c(-0.1, 1.25)) +
+    scale_color_manual(values=clColors)+
+    theme_classic() +
+    theme(axis.text = element_text(size = 8),
+          axis.title = element_text(size = 9)))
+
+tab <- as.data.frame(table(sds2m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds2m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF5_sds2_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="Score")+
+  theme_classic()
+print(g)
+dev.off()
+
+
+# Compare designed data to clustered solutions
+
+# make copies of originals to store results into
+sds1.r <- sds1m
+sds2.r <- sds2m
+
+# remove grouping variable for clustering
+sds1.c <- sds1m %>% select(-Group)
+sds2.c <- sds2m %>% select(-Group)
+
+### Run multiple algorithms ####
+
+## ..original ####
+# sds1
+tab <- as.data.frame(table(sds1m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds1m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF6a_sds1_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="SDS1 (Simulated groups)")+
+  theme_classic()+
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+# sds2
+tab <- as.data.frame(table(sds2m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds2m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF7a_sds2_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="SDS2 (Simulated groups)")+
+  theme_classic()+
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..hierarchical ####
+# sds1
+d <- dist(sds1.c, method = "euclidean")
+soln_hc <- hclust(d, method = "ward.D2")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("hc, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6b_sds1_hc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "euclidean")
+soln_hc <- hclust(d, method = "ward.D2")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("hc, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7b_sds2_hc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..k-means ####
+# sds1
+soln_kmn <- kmeans(sds1.c, 3)
+sds1.r$Assigned <- soln_kmn$cluster
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("kmn, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6c_sds1_kmn_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+soln_kmn <- kmeans(sds2.c, 3)
+sds2.r$Assigned <- soln_kmn$cluster
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("kmn, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7c_sds2_kmn_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..pam ####
+# sds1
+soln_pam <- pam(sds1.c, 3)
+sds1.r$Assigned <- soln_pam$cluster
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("pam, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6d_sds1_pam_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+#sds2
+soln_pam <- kmeans(sds2.c, 3)
+sds2.r$Assigned <- soln_pam$cluster
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("pam, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7d_sds2_pam_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..gmm / mclust ####
+# sds1
+soln_gmm <- Mclust(sds1.c, 3)
+sds1.r$Assigned <- soln_gmm$classification
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("gmm, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6e_sds1_gmm_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+soln_gmm <- Mclust(sds2.c, 3)
+sds2.r$Assigned <- soln_gmm$classification
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("gmm, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7e_sds2_gmm_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..ap ####
+# sds1
+soln_ap <- aggExCluster(negDistMat(sds1.c, r=2))
+sds1.r$Assigned <- match(apcluster::cutree(soln_ap, k = 3)@idx, 
+                         unique(apcluster::cutree(soln_ap, k = 3)@idx))
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("ap, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6f_sds1_ap_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+
+
+# sds2
+soln_ap <- aggExCluster(negDistMat(sds2.c, r=2))
+sds2.r$Assigned <- match(apcluster::cutree(soln_ap, k = 3)@idx, 
+                         unique(apcluster::cutree(soln_ap, k = 3)@idx))
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("ap, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7f_sds2_ap_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..sc ####
+# sds1
+soln_sc <- specc(as.matrix(sds1.c), centers = 3)
+sds1.r$Assigned <- soln_sc@.Data
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("sc, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6g_sds1_sc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+
+
+# sds2
+soln_sc <- specc(as.matrix(sds2.c), centers = 3)
+sds2.r$Assigned <- soln_sc@.Data
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("sc, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7g_sds2_sc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..som (with k-means, 5x5 hexagonal grid) ####
+# sds1
+som.model <- som(scale(sds1.c),  grid = somgrid(5, 5, "hexagonal"))
+soln_som <- kmeans(som.model$codes[[1]], 3)
+som <- as.vector(som.model$unit.classif)
+clus <- tibble(Node = 1:25,
+               Cluster = as.vector(soln_som$cluster))
+sds1.r$Assigned <- clus$Cluster[som]
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("som, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6h_sds1_som_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+som.model <- som(scale(sds2.c),  grid = somgrid(5, 5, "hexagonal"))
+soln_som <- kmeans(som.model$codes[[1]], 3)
+som <- as.vector(som.model$unit.classif)
+clus <- tibble(Node = 1:25,
+               Cluster = as.vector(soln_som$cluster))
+sds2.r$Assigned <- clus$Cluster[som]
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("som, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7h_sds2_som_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..fc ####
+# sds1
+soln_fc <- cmeans(sds1.c, 3)
+sds1.r$Assigned <- soln_fc$cluster
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("fc, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6i_sds1_fc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+# sds2
+soln_fc <- cmeans(sds2.c, 3)
+sds2.r$Assigned <- soln_fc$cluster
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("fc, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7i_sds2_fc_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..dbs ####
+# sds1
+soln_dbscan <- hdbscan(as.matrix(sds1.c), minPts = 5)
+sds1.r$Assigned <- ifelse(soln_dbscan$cluster == 0, 
+                          NA, soln_dbscan$cluster)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% na.omit() %>%  select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("dbs, ARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned) |
+                                           is.na(sds1.r$Assigned))," (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned) | 
+                                    is.na(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF6j_sds1_dbs_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+soln_dbscan <- hdbscan(as.matrix(sds2.c), minPts = 5)
+sds2.r$Assigned <- ifelse(soln_dbscan$cluster == 0, 
+                          NA, soln_dbscan$cluster)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% na.omit() %>%  select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("dbs, ARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned) |
+                                           is.na(sds2.r$Assigned))," (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned) | 
+                                    is.na(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF7j_sds2_dbs_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+
+### Change metrics of one algorithm ####
+
+## ..original ####
+# sds1
+tab <- as.data.frame(table(sds1m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds1m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF8a_sds1_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="SDS1 (Simulated groups)\n")+
+  theme_classic()+
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+# sds2
+tab <- as.data.frame(table(sds2m$Group)) %>%
+  rename(Group = 1, Size = 2) %>%
+  mutate(Group=factor(as.character(Group),
+                      levels=c("Low","Mid","High"),
+                      ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Group, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Group, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Group, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+hca.box <- sds2m %>%
+  mutate(Group = tab$Label2lines[Group]) %>%
+  pivot_longer(-Group, names_to = "Scale", values_to = "Score")
+
+hca.lim <- hca.box %>% group_by(Group, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+hca.out <- merge(hca.box, hca.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+png(paste0("Figures/SF9a_sds2_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(hca.box, aes(x = Scale, fill = Group, color = Group, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = hca.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Group, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y="SDS2 (Simulated groups)\n")+
+  theme_classic()+
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..euclidean & ward ####
+# sds1
+d <- dist(sds1.c, method = "euclidean")
+soln_hc <- hclust(d, method = "ward.D2")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Ward\nARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF8b_sds1_hc_euc_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "euclidean")
+soln_hc <- hclust(d, method = "ward.D2")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Ward\nARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF9b_sds2_hc_euc_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..euclidean & complete ####
+# sds1
+d <- dist(sds1.c, method = "euclidean")
+soln_hc <- hclust(d, method = "complete")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Complete\nARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF8c_sds1_hc_euc_complete_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "euclidean")
+soln_hc <- hclust(d, method = "complete")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Complete\nARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF9c_sds2_hc_euc_complete_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..euclidean & single ####
+# sds1
+d <- dist(sds1.c, method = "euclidean")
+soln_hc <- hclust(d, method = "single")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Single\nARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF8d_sds1_hc_euc_single_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "euclidean")
+soln_hc <- hclust(d, method = "single")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Euclidean & Single\nARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF9d_sds2_hc_euc_single_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+## ..manhattan & ward ####
+# sds1
+d <- dist(sds1.c, method = "manhattan")
+soln_hc <- hclust(d, method = "ward.D2")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Manhattan & Ward\nARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF8e_sds1_hc_manh_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "manhattan")
+soln_hc <- hclust(d, method = "ward.D2")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Manhattan & Ward\nARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF9e_sds2_hc_manh_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+## ..maximum & ward ####
+# sds1
+d <- dist(sds1.c, method = "maximum")
+soln_hc <- hclust(d, method = "ward.D2")
+sds1.r$Assigned <- cutree(soln_hc, 3)
+
+sds1.r <- relabel(sds1.r, "Assigned")
+
+tab <- as.data.frame(table(sds1.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds1.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Maximum & Ward\nARI = ",
+                        round(adjustedRandIndex(sds1.r$Group,sds1.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned)), " (",
+                        round(sum(as.numeric(sds1.r$Group)!=as.numeric(sds1.r$Assigned))/
+                                nrow(sds1.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF8f_sds1_hc_max_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+
+# sds2
+d <- dist(sds2.c, method = "maximum")
+soln_hc <- hclust(d, method = "ward.D2")
+sds2.r$Assigned <- cutree(soln_hc, 3)
+
+sds2.r <- relabel(sds2.r, "Assigned")
+
+tab <- as.data.frame(table(sds2.r$Assigned)) %>%
+  rename(Assigned = 1, Size = 2) %>%
+  mutate(Assigned=factor(as.character(Assigned),
+                         levels=c("Low*","Mid*","High*"),
+                         ordered=T)) %>% 
+  mutate(Percent = round((Size / sum(Size)) * 100, digits = 1)) %>% 
+  mutate(Label2lines = factor(paste0(Assigned, "\nN = ", Size, " (",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, " (",
+                                            Percent, "%)"),
+                              ordered=T),
+         Label3lines = factor(paste0(Assigned, "\nN = ", Size, "\n(",
+                                     Percent, "%)"),
+                              levels=paste0(Assigned, "\nN = ", Size, "\n(",
+                                            Percent, "%)"),
+                              ordered = T))
+
+cluster.box <- sds2.r %>% select(-Group) %>% 
+  mutate(Assigned = tab$Label2lines[Assigned]) %>%
+  pivot_longer(-Assigned, names_to = "Scale", values_to = "Score")
+
+cluster.lim <- cluster.box %>% group_by(Assigned, Scale) %>% 
+  summarise(lowerW = quantile(Score, 0.25) - 1.5 * IQR(Score),
+            upperW =quantile(Score, 0.75) + 1.5 * IQR(Score),
+            .groups="drop")
+
+cluster.out <- merge(cluster.box, cluster.lim) %>% 
+  filter(Score > upperW | Score < lowerW)
+
+cluster.label <- paste0("Maximum & Ward\nARI = ",
+                        round(adjustedRandIndex(sds2.r$Group,sds2.r$Assigned), digits = 2),
+                        ", miss = ", sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned)), " (",
+                        round(sum(as.numeric(sds2.r$Group)!=as.numeric(sds2.r$Assigned))/
+                                nrow(sds2.r)* 100, digits = 1),
+                        "%)")
+
+png(paste0("Figures/SF9f_sds2_hc_max_ward_box.png"),
+    height = 1500, width = 4000, res = 600)
+g <- ggplot(cluster.box, aes(x = Scale, fill = Assigned,
+                             color = Assigned, y = Score)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(data = cluster.out, shape=21, alpha=0.3,
+              height=0, width=0.2, color="black") +
+  scale_fill_viridis(discrete = TRUE, alpha = 0.5, direction = -1) +
+  scale_color_viridis(discrete = TRUE, direction = -1) +
+  facet_wrap(~Assigned, ncol = 3) +
+  guides(fill = "none", color = "none") +
+  labs(x=NULL, y=cluster.label)+
+  theme_classic() +
+  theme(axis.title.y=element_text(hjust=0, size=10))
+
+print(g)
+dev.off()
+
+# Delete unnecessary objects for next code (to prevent environment from being bogged down or overcrowded):
+rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
+
+
+#### EXAMPLE 5: Basic HCA on ICI -----------------------------------
 ### Euclidean/Ward, original order - dendrogram --------------------------
 
 dist.ICI <- dist(ICI.s, method = "euclidean") # compute distance matrix
@@ -1432,7 +3614,7 @@ dev.off()
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-#### EXAMPLE 5: Basic k-means on ICI -----------------------------------------------
+#### EXAMPLE 6: Basic k-means on ICI -----------------------------------------------
 ### k-means on ICI, random start #1 -------------------------------------
 
 set.seed(1)                                         # set a random seed to recover original starting values
@@ -1583,7 +3765,7 @@ kmn.r %>%
 rm(list=setdiff(ls(), c("ICI.s","CALC_REPS")))
 
 
-#### EXAMPLE 6: Descriptive distribution across possible scores --------------
+#### EXAMPLE 7: Descriptive distribution across possible scores --------------
 
 # Generate a table of how many (percent) students chose each response possibility for each of the four variables
 round(table(ICI.s$Factor1) / nrow(ICI.s) * 100, 1)
@@ -1592,7 +3774,7 @@ round(table(ICI.s$Factor3) / nrow(ICI.s) * 100, 1)
 round(table(ICI.s$Factor4) / nrow(ICI.s) * 100, 1)
 
 
-#### EXAMPLE 7: Determining appropriate number of clusters -------------------
+#### EXAMPLE 8: Determining appropriate number of clusters -------------------
 
 # For these figures, the x-axis is always 1 through 8, but we need to calculate the Within SS (A),
 # Avg. Silhouette (B), and Gap Statistic plus standard deviation (C). The following code does this and
@@ -1855,7 +4037,7 @@ tab <- tibble(as.vector(table(clusteringshca$df[[bestsoln_sil]]$Cluster))) %>%
          Label3lines = paste0("Cluster ", Cluster, "\nN = ", Size, "\n(",
                               Percent, "%)"))
 
-#### EXAMPLE 9: Visualizing HCA solution -------------------
+#### EXAMPLE 10: Visualizing HCA solution -------------------
 
 ### HCA solution, box plot (cluster facets) ---------------------------------
 
@@ -2315,7 +4497,7 @@ altbkborder <- grid.arrange(grobs=lsGrobs, ncol=2, nrow=ceiling(ksel/2)*2,
              padding=2)
 
 
-#### EXAMPLE 10: Silhouette Plot for HCA ---------------------------------------------
+#### EXAMPLE 11: Silhouette Plot for HCA ---------------------------------------------
 
 # Pull required information from silhouette values
 hca.sil <- clusteringshca$df[[bestsoln_sil]] %>%
@@ -2344,7 +4526,7 @@ print(g)
 dev.off()
 
 
-#### EXAMPLE 11: Bootstrap samples to determine stability of HCA ------------------------------------
+#### EXAMPLE 12: Bootstrap samples to determine stability of HCA ------------------------------------
 
 # /////////////////// WARNING WARNING WARNING /////////////////// #
 
@@ -2430,7 +4612,7 @@ rm(list=setdiff(ls(), c("ICI.s","CALC_REPS",
 ksel <- 6
 for(ksel in ksels) {
 
-#### EXAMPLE 12: Optimal k-means analyses --------------------------------------------
+#### EXAMPLE 13: Optimal k-means analyses --------------------------------------------
 
 # This section contains everything done for hierarchical results, except now for k-means analyses. The code is very
 # similar to that of the hierarchical, so much of it is not commented; see the hierarchical example for the rationale
